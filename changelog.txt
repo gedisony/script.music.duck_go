@@ -1,0 +1,13 @@
+0.2.3
+ - include boardgame family in in boardgame stats
+ - create profile folder if not exist
+ 
+0.2.2
+ - fix when not enough images per boardgame
+
+0.2.1
+ - use memory for requests_cache if profile folder not exist  
+
+
+0.0.1 
+ - initial version based on script.screensaver.multi_slideshow by Tristan Fischer (sphere@dersphere.de)

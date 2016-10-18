@@ -1,0 +1,109 @@
+# Kodi Media Center language file
+# Addon Name: guessadex
+# Addon id: script.screensaver.guessadex
+msgid ""
+msgstr ""
+
+#settings screen settings.xml
+
+#setting category
+msgctxt "#32100"
+msgid "General"
+msgstr ""
+
+msgctxt "#32101"
+msgid "Clear requests cache"
+msgstr ""
+
+msgctxt "#32102"
+msgid "Custom search engine ID"
+msgstr ""
+
+msgctxt "#32103"
+msgid "API Key"
+msgstr ""
+
+msgctxt "#32104"
+msgid "Search"
+msgstr ""
+
+msgctxt "#32105"
+msgid "Replaceable tags: {title} {artist} {album}"
+msgstr ""
+
+msgctxt "#32106"
+msgid "Time before new image (secs.)"
+msgstr ""
+
+msgctxt "#32107"
+msgid "Show currently playing music title"
+msgstr ""
+
+msgctxt "#32108"
+msgid "Search term for when no music is playing"
+msgstr ""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+msgctxt "#32300"
+msgid "Board Game Geek"
+msgstr ""
+
+msgctxt "#32301"
+msgid "Enabled"
+msgstr ""
+
+msgctxt "#32302"
+msgid "Use BGG rank(need to build index file) instead of hotness list"
+msgstr ""
+
+msgctxt "#32303"
+msgid "Game mechanic"
+msgstr ""
+
+msgctxt "#32304"
+msgid "Build boardgame index file from boardgamegeek.com"
+msgstr ""
+
+msgctxt "#32305"
+msgid "Success"
+msgstr ""
+
+msgctxt "#32306"
+msgid "File does not exist"
+msgstr ""
+
+msgctxt "#32307"
+msgid "Download page %d of %d"
+msgstr ""
+
+msgctxt "#32308"
+msgid "Read Timeout, Please Try again."
+msgstr ""
+
+
+
+

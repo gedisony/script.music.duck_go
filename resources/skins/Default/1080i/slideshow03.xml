@@ -1,0 +1,540 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<window type="window">
+	<!-- onload>ClearProperty(foo,10000)</onload-->
+	<onload>SetProperty(foox,barsddsd,10000)</onload>
+
+	
+	<backgroundcolor>gray</backgroundcolor>
+
+	<menucontrol>9000</menucontrol>
+	<!-- No includes and no $PARAM for xml guis. we gotta do this the hard way -->
+    <controls>
+
+		<control type="image" id="100">
+			<description>background</description>
+			<aspectratio>scale</aspectratio>
+			<texture>srr_blackbg.jpg</texture>
+			<visible>true</visible>
+		</control>
+
+
+
+		<control type="group" id="300"><description>Label:Info pairs and list</description>
+			<left>0</left>
+			<top>0</top>
+			<width>800</width>
+			<height>700</height>	
+		    <control type="image" id="399">
+				<left>0</left>
+				<top>10</top>
+				<width>780</width>
+				<height>700</height>
+		        <texture diffuse="gdx_diffuse.png">srr_dlg-bg.png</texture>
+		        <aspectratio>stretch</aspectratio>
+		    </control>
+
+			<control type="grouplist" >
+				<left>0</left>
+				<top>10</top>
+				<width>780</width>
+				<height>700</height>
+				<orientation>vertical</orientation>
+				<usecontrolcoords>true</usecontrolcoords>
+				<itemgap>10</itemgap>
+				<align>center</align>
+
+				<control  type="label" id="390">
+					<description>Title</description>
+					<left>20</left>
+					<width>720</width>
+					<height>25</height>
+					<visible>!String.IsEmpty(Control.GetLabel(390))</visible>
+					<label></label>
+					<align>center</align>
+					<font>font35_title</font>
+				</control>
+
+				<control  type="label" id="391">
+					<description>text under Title or spacer</description>
+					<height>25</height>
+					<visible>true</visible>
+					<label></label>
+					<align>center</align>
+					<font>font16</font>
+				</control>
+
+				<control type="group"><description>Label : Info pairs</description>
+				    <height>20</height>
+					<control type="label" id="311">
+						<description>Label1</description>
+						<left>20</left>
+						<width>160</width>
+						<height>auto</height>
+						<visible>!String.IsEmpty(Control.GetLabel(301))</visible>
+						<label>[B]Players :[/B]</label>
+						<align>right</align>
+						<font>font16</font>
+					</control>
+					<control type="label" id="301">
+						<description>Info1</description>
+						<left>190</left>
+						<width>180</width>
+						<height>auto</height>
+						<visible>!String.IsEmpty(Control.GetLabel(301))</visible>
+						<label></label>
+						<align>left</align>
+						<font>font16</font>
+					</control>
+
+					<control type="label" id="313">
+						<description>Label1</description>
+						<left>420</left>
+						<width>160</width>
+						<height>auto</height>
+						<visible>!String.IsEmpty(Control.GetLabel(303))</visible>
+						<label>[B]Age :[/B]</label>
+						<align>right</align>
+						<font>font16</font>
+					</control>
+					<control type="label" id="303">
+						<description>Info1</description>
+						<left>590</left>
+						<width>180</width>
+						<height>auto</height>
+						<visible>!String.IsEmpty(Control.GetLabel(303))</visible>
+						<label></label>
+						<align>left</align>
+						<font>font16</font>
+					</control>
+				</control>
+
+				<control type="group">
+				    <height>20</height>
+					<control type="label" id="312">
+						<description>Label2</description>
+						<left>20</left>
+						<width>160</width>
+						<height>auto</height>
+						<visible>!String.IsEmpty(Control.GetLabel(302))</visible>
+						<label>[B]Play time :[/B]</label>
+						<align>right</align>
+						<font>font16</font>
+					</control>
+					<control type="label" id="302">
+						<description>Info2</description>
+						<left>190</left>
+						<width>180</width>
+						<height>auto</height>
+						<visible>!String.IsEmpty(Control.GetLabel(302))</visible>
+						<label></label>
+						<align>left</align>
+						<font>font16</font>
+					</control>
+
+					<control type="label" id="314">
+						<description>Label1</description>
+						<left>420</left>
+						<width>160</width>
+						<height>auto</height>
+						<visible>!String.IsEmpty(Control.GetLabel(304))</visible>
+						<label>[B]Complexity :[/B]</label>
+						<align>right</align>
+						<font>font16</font>
+					</control>
+					<control type="label" id="304">
+						<description>Info1</description>
+						<left>590</left>
+						<width>180</width>
+						<height>auto</height>
+						<visible>!String.IsEmpty(Control.GetLabel(304))</visible>
+						<label></label>
+						<align>left</align>
+						<font>font16</font>
+					</control>
+				</control>
+
+				<control type="group">
+				    <height>20</height>
+					<control type="label" id="315">
+						<description>Label2</description>
+						<left>20</left>
+						<width>160</width>
+						<height>auto</height>
+						<visible>!String.IsEmpty(Control.GetLabel(305))</visible>
+						<label>[B]Year :[/B]</label>
+						<align>right</align>
+						<font>font16</font>
+					</control>
+					<control type="label" id="305">
+						<description>Info2</description>
+						<left>190</left>
+						<width>180</width>
+						<height>auto</height>
+						<visible>!String.IsEmpty(Control.GetLabel(305))</visible>
+						<label></label>
+						<align>left</align>
+						<font>font16</font>
+					</control>
+
+					<control type="label" id="316">
+						<description>Label1</description>
+						<left>420</left>
+						<width>160</width>
+						<height>auto</height>
+						<visible>!String.IsEmpty(Control.GetLabel(306))</visible>
+						<label>[B]Avg Rating :[/B]</label>
+						<align>right</align>
+						<font>font16</font>
+					</control>
+					<control type="label" id="306">
+						<description>Info1</description>
+						<left>590</left>
+						<width>180</width>
+						<height>auto</height>
+						<visible>!String.IsEmpty(Control.GetLabel(306))</visible>
+						<label></label>
+						<align>left</align>
+						<font>font16</font>
+					</control>
+				</control>
+
+
+				<control type="label" >	<description>spacer</description>
+					<left>10</left>
+					<width>160</width>
+					<height>20</height>
+					<visible>true</visible>
+					<label></label>
+					<align>right</align>
+					<font>font16</font>
+				</control>
+
+				<control type="group"><description>first-1 listbox group</description>
+					<height>100</height>
+								<control type="label" id="320">
+									<description>listbox -1 Label</description>
+									<left>10</left>
+									<width>160</width>
+									<height>20</height>
+									<visible>!String.IsEqual(Container(310).NumItems,0)</visible>
+									<label>[B]Families[/B]</label>
+									<align>right</align>
+									<font>font16</font>
+								</control>
+
+								<control type="panel" id="310">
+									<top>8</top>
+									<left>180</left>
+									<width>560</width>
+									<height>100</height>
+									<orientation>horizontal</orientation>
+									<focusedlayout height="25" width="280">
+										<control type="label">
+											<left>10</left>
+											<width>270</width>
+											<height>23</height>
+											<font>font13</font>
+											<label>·$INFO[ListItem.Label]</label>
+										</control>
+									</focusedlayout>
+									<itemlayout height="25" width="280">
+										<control type="label">
+											<left>10</left>
+											<width>270</width>
+											<height>23</height>
+											<font>font13</font>
+											<label>·$INFO[ListItem.Label]</label>
+										</control>
+									</itemlayout>
+								</control>
+				</control>
+
+
+				<control type="group"><description>first listbox group</description>
+					<height>100</height>
+								<control type="label" id="317">
+									<description>listbox 1 Label</description>
+									<left>10</left>
+									<width>160</width>
+									<height>20</height>
+									<visible>!String.IsEqual(Container(307).NumItems,0)</visible>
+									<label>[B]Categories[/B]</label>
+									<align>right</align>
+									<font>font16</font>
+								</control>
+
+								<control type="panel" id="307">
+									<top>8</top>
+									<left>180</left>
+									<width>560</width>
+									<height>100</height>
+									<orientation>horizontal</orientation>
+									<focusedlayout height="25" width="280">
+										<control type="label">
+											<left>10</left>
+											<width>270</width>
+											<height>23</height>
+											<font>font13</font>
+											<label>·$INFO[ListItem.Label]</label>
+										</control>
+									</focusedlayout>
+									<itemlayout height="25" width="280">
+										<control type="label">
+											<left>10</left>
+											<width>270</width>
+											<height>23</height>
+											<font>font13</font>
+											<label>·$INFO[ListItem.Label]</label>
+										</control>
+									</itemlayout>
+								</control>
+				</control>
+				
+				<control type="group"><description>second listbox group</description>
+					<height>100</height>
+								<control type="label" id="318">
+									<description>listbox 1 Label</description>
+									<left>10</left>
+									<width>160</width>
+									<height>20</height>
+									<visible>!String.IsEqual(Container(308).NumItems,0)</visible>
+									<label>[B]Mechanics[/B]</label>
+									<align>right</align>
+									<font>font16</font>
+								</control>
+
+								<control type="panel" id="308">
+									<top>8</top>
+									<left>180</left>
+									<width>580</width>
+									<height>100</height>
+									<orientation>horizontal</orientation>
+									<focusedlayout height="25" width="290">
+										<control type="label">
+											<left>10</left>
+											<width>270</width>
+											<height>23</height>
+											<font>font13</font>
+											<label>·$INFO[ListItem.Label]</label>
+										</control>
+									</focusedlayout>
+									<itemlayout height="25" width="290">
+										<control type="label">
+											<left>10</left>
+											<width>270</width>
+											<height>23</height>
+											<font>font13</font>
+											<label>·$INFO[ListItem.Label]</label>
+										</control>
+									</itemlayout>
+								</control>
+
+				</control>
+				<control type="group"><description>third listbox group</description>
+					<height>100</height>
+								<control type="label" id="319">
+									<description>listbox 1 Label</description>
+									<left>10</left>
+									<width>160</width>
+									<height>100</height>
+									<visible>!String.IsEqual(Container(309).NumItems,0)</visible>
+									<label>[B]Designers[CR]& Artists[/B]</label>
+									<align>right</align>
+									<font>font16</font>
+								</control>
+
+								<control type="panel" id="309">
+									<top>8</top>
+									<left>180</left>
+									<width>560</width>
+									<height>100</height>
+									<orientation>horizontal</orientation>
+									<focusedlayout height="25" width="280">
+										<control type="label">
+											<left>10</left>
+											<width>270</width>
+											<height>23</height>
+											<font>font13</font>
+											<label>·$INFO[ListItem.Label]</label>
+										</control>
+									</focusedlayout>
+									<itemlayout height="25" width="280">
+										<control type="label">
+											<left>10</left>
+											<width>270</width>
+											<height>23</height>
+											<font>font13</font>
+											<label>·$INFO[ListItem.Label]</label>
+										</control>
+									</itemlayout>
+								</control>
+				</control>
+
+				
+			</control>
+				
+		</control>		<!-- end group id=300 -->	
+		
+		<control type="image" id="101">
+			<left>0</left>		<top>0</top>
+			<width>10</width>	<height>10</height>
+			<aspectratio aligny="center">keep</aspectratio>
+			<texture></texture>
+		</control>
+
+		<control type="image" id="102">
+			<left>20</left>		<top>0</top>
+			<width>10</width>	<height>10</height>
+			<aspectratio aligny="center">keep</aspectratio>
+			<texture diffuse="gdx_diffuse.png"></texture>
+		</control>
+		<control type="image" id="103">
+			<left>40</left>		<top>0</top>
+			<width>10</width>	<height>10</height>
+			<aspectratio aligny="center">keep</aspectratio>
+			<texture diffuse="gdx_diffuse.png"></texture>
+		</control>
+		<control type="image" id="104">
+			<left>60</left>		<top>0</top>
+			<width>10</width>	<height>10</height>
+			<aspectratio aligny="center">keep</aspectratio>
+			<texture diffuse="gdx_diffuse.png"></texture>
+		</control>
+		<control type="image" id="105">
+			<left>80</left>		<top>0</top>
+			<width>10</width>	<height>10</height>
+			<aspectratio aligny="center">keep</aspectratio>
+			<texture diffuse="gdx_diffuse.png"></texture>
+		</control>
+
+
+		<control type="image" id="106">
+			<left>0</left>		<top>0</top>
+			<width>10</width>	<height>10</height>
+			<aspectratio aligny="center">keep</aspectratio>
+			<texture diffuse="gdx_diffuse.png"></texture>
+		</control>
+
+		<control type="image" id="107">
+			<left>20</left>		<top>0</top>
+			<width>10</width>	<height>10</height>
+			<aspectratio aligny="center">keep</aspectratio>
+			<texture diffuse="gdx_diffuse.png"></texture>
+		</control>
+		<control type="image" id="108">
+			<left>40</left>		<top>0</top>
+			<width>10</width>	<height>10</height>
+			<aspectratio aligny="center">keep</aspectratio>
+			<texture diffuse="gdx_diffuse.png"></texture>
+		</control>
+		<control type="image" id="109">
+			<left>60</left>		<top>0</top>
+			<width>10</width>	<height>10</height>
+			<aspectratio aligny="center">keep</aspectratio>
+			<texture diffuse="gdx_diffuse.png"></texture>
+		</control>
+		<control type="image" id="110">
+			<left>80</left>		<top>0</top>
+			<width>10</width>	<height>10</height>
+			<aspectratio aligny="center">keep</aspectratio>
+			<texture diffuse="gdx_diffuse.png"></texture>
+		</control>
+
+		<control type="group" id="200"><description>Title, title2 and Description</description>
+			<visible>true</visible>
+			<top>0</top>
+			<left>260</left>
+				<control type="textbox" >
+					<description>this works!</description>
+					<left>20</left>
+					<top>80</top>
+					<width>100</width>
+					<height>100</height>
+					<visible>false</visible>
+					<!-- visible>!String.IsEmpty(Control.GetLabel(201))</visible-->
+					<label>$INFO[Control.GetLabel(201)]</label>
+					<align>center</align>
+					<font>font30</font>
+				</control>
+				
+		    <control type="image" id="199">
+				<left>0</left>
+				<top>10</top>
+				<width>760</width>
+				<height>700</height>
+		        <texture>srr_dlg-bg.png</texture>
+		        <aspectratio>stretch</aspectratio>
+		        
+		    </control>
+
+			<control type="grouplist" >
+				<left>0</left>
+				<top>10</top>
+				<width>800</width>
+				<height>700</height>
+				<orientation>vertical</orientation>
+				<usecontrolcoords>true</usecontrolcoords>
+				<itemgap>10</itemgap>
+				<align>top</align>
+
+				<control type="textbox" id="201">
+					<description>Title</description>
+					<left>20</left>
+					<width>720</width>
+					<height>auto</height>
+					<visible>!String.IsEmpty(Control.GetLabel(201))</visible>
+					<label></label>
+					<align>center</align>
+					<font>font35_title</font>
+				</control>
+
+				<control type="textbox" id="203">
+					<description>Title2</description>
+					<left>20</left>
+					<width>720</width>
+					<height>auto</height>
+					<visible>!String.IsEmpty(Control.GetLabel(203))</visible>
+					<label></label>
+					<align>center</align>
+					<font>font30</font>
+				</control>
+				<control type="textbox" id="204">
+					<description>Title3</description>
+					<left>20</left>
+					<width>720</width>
+					<height>auto</height>
+					<visible>!String.IsEmpty(Control.GetLabel(204))</visible>
+					<label></label>
+					<align>justify</align>
+					<font>font16</font>
+				</control>
+				
+				<control type="textbox" id="202">
+					<description>description</description>
+					<left>20</left>
+					<width>720</width>
+					<height>auto</height>
+					<visible>true</visible>
+					<label></label>
+					<align>justify</align>
+					<font>font16</font>
+				</control>
+			</control>
+		</control>
+
+
+
+				
+
+				
+				
+
+				
+
+
+
+
+
+		
+    </controls>
+</window>

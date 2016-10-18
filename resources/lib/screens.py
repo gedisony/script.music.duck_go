@@ -1,0 +1,1353 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+#     Original Work Copyright (C) 2013 Tristan Fischer (sphere@dersphere.de)
+#     Modified Work Copyright (C) 2016 Edison Yau (gedisony@gmail.com)
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
+import random, math
+import sys
+import threading
+import Queue
+
+import xbmc, xbmcaddon
+from xbmcgui import ControlImage, WindowXMLDialog, ControlTextBox, ControlLabel, ListItem, Window
+
+from screensaver import log
+
+import pprint
+
+import PIL
+import requests
+
+
+reload(sys)
+sys.setdefaultencoding("utf-8")
+
+addon = xbmcaddon.Addon()
+
+ADDON_PATH = addon.getAddonInfo('path')
+
+CHUNK_WAIT_TIME = 250
+ACTION_IDS_EXIT = [9, 10, 13, 92]
+ACTION_IDS_PAUSE = [12,68,79,229]   #ACTION_PAUSE = 12  ACTION_PLAY = 68  ACTION_PLAYER_PLAY = 79   ACTION_PLAYER_PLAYPAUSE = 229
+
+class ctl_animator(threading.Thread):
+    screen_w=1280
+    screen_h=720
+    GROUP_ID=100
+    grid_positions=[]
+    
+    def __init__(self, window, image_control_ids ):
+        threading.Thread.__init__(self)
+        self.window=window
+        #self.control=text_control
+        #self.text=text
+        self.controls_cycle=cycle(image_control_ids)
+        self.image_control_ids=image_control_ids
+        #self.num_controls=len(image_control_ids)
+        self.group_ctl=self.window.getControl( self.GROUP_ID )
+        self.exit_monitor = ExitMonitor(self.stop)
+        
+        self.define_grid_positions(5,4) #divide the screen into 5x4 grid 
+
+    def define_grid_positions(self, rows=5, cols=4):
+        #populates the 5x4 grid used by many animation methods 
+        x_units = int( self.screen_w / rows )
+        y_units = int( self.screen_h / cols )
+
+        for y in range(0,cols):
+            for x in range(0,rows):
+                x_pos= x * x_units 
+                y_pos= y * y_units 
+                self.grid_positions.append( ( x_pos, y_pos ) )
+        #log( pprint.pformat(self.grid_positions ) )
+
+    def run(self):
+        log('@animator thread start ' + repr(self.image_control_ids))    
+        #xbmc.sleep(10000)
+        try:
+            self.running = True
+            while self.running:    #while not self.monitor.abortRequested():
+                
+                msec_per_image=2000
+                
+                option, f=random.choice(self.animation_functions)
+                #option, f=self.animation_functions[6]
+                #option, f=self.animation_functions[10]  #bpm grid
+                #f=self.test; option='once'
+                
+                log('  @animation: ' + repr( f ) ) 
+                
+                if option=='r': ctl_ids=reversed(self.image_control_ids)
+                else:           ctl_ids=self.image_control_ids
+
+                #used for star wars-like slide to horizon
+                if option=='u': animation_time=30000;msec_per_image=5000   #make animation time same
+                else:           animation_time=random.randint( 10000, 20000 ) #will make some images move faster
+                
+                if option=='once': #for animations that manipulate the canvas or use all controls at once (short time)
+                    f(self, control_id=0, delay=0, time=random.randint(  10000, 20000 ) )
+                    #self.wait(15000)
+
+                elif option=='onceb': #for animations that animate all controls (long time)  e.g.: grid-beats
+                    f(self, control_id=0, delay=0, time=50000 )
+                    #add a slow fade animation to all images after beats done 
+                    self.apply_animation_to_all_controls( [animation_format( 0,    0, 'zoom',  70,70,      '',    '','auto','' ),     #maintain zoom size so that transition won't be abrupt
+                                                           animation_format( 0, 2000, 'fade', 100, 0, 'cubic', 'out' ),] )
+
+                else:
+                    #fly images one at a time. 
+                    for id in ctl_ids:
+                        #log( repr(id) )
+                        f(self, id, 0, animation_time )
+                        self.wait(msec_per_image)
+
+        except Exception:
+            self.log( '  @' + repr(sys.exc_info()) )
+                            
+        log('@animator thread DONE' )                             
+
+        
+    def stop(self):
+        log('    @stop')
+        self.running=False           
+
+    def join(self, timeout=None):
+        self.running=False
+        log('    @join')
+        super(ctl_animator, self).join(timeout)
+
+    def wait(self, sleep_msec):
+        chunk_wait_time = 500 
+        remaining_wait_time = sleep_msec   
+        while remaining_wait_time > 0:
+            if self.running == False:
+                #log('  @wait aborted')
+                return
+            if remaining_wait_time < chunk_wait_time:
+                chunk_wait_time = remaining_wait_time
+            remaining_wait_time -= chunk_wait_time
+            
+            xbmc.sleep(chunk_wait_time)
+            #xbmc.Monitor().waitForAbort( chunk_wait_time/1000  )
+    
+    def test(self, style, control_id, delay, time):
+        log('  running test animation method')
+        #get some controls out of the way
+        img_ctl_b=self.window.getControl( 114 ); img_ctl_b.setVisible(False)
+        img_ctl_b=self.window.getControl( 120 ); img_ctl_b.setVisible(False)
+
+        control_id=102
+        self.slide_control_to_grid( control_id, 1, 0, 1000, [animation_format(    500, 1000,    'zoom',  100, 70,   'sine', 'in','auto','' ),],False)
+        #self.slide_control_to_grid( 114, 5, 0, 2000)
+        #img_ctl=self.window.getControl( control_id )
+        #
+
+        bpm=120
+        
+        msec_bpm      = 60000/bpm
+        half_msec_bpm = 30000/bpm
+        
+#        img_ctl.setAnimations( [    
+#                        animation_format(    2000, 1000,    'zoom',  100, 70,   'sine', 'in','auto','' ),
+#                       #animation_format(         1000, half_msec_bpm,    'zoom',   70, 100,   'sine', 'in','auto','' ),
+#                       #animation_format( 1000+half_msec_bpm, half_msec_bpm,    'zoom',  100,  70,   'sine',  'out','auto','' ),
+#                       ] ) 
+        
+        self.running=False
+        pass
+
+    def rotate_animation(self, style, control_id, delay, time):
+
+        img_ctl=self.window.getControl( control_id )
+        img_w=320  #int(image_dict.get('width'))
+        img_h=320  #int(image_dict.get('height'))
+        half_img=int(img_w/2)
+        ANIMATION=[]
+
+        pos_or_neg=['','-']
+        pn=random.choice(pos_or_neg)        
+        rand_x_pos=random.randint(  0, (self.screen_w-img_w) )
+
+        smallest_x_no_crop= int( self.screen_w*0.165 )  #about 210  #any lower and the image will crop when rotated
+        start_x=random.choice([smallest_x_no_crop, 700])
+        #log('    control ' + repr(control_id) + ' position '  +repr(smallest_x_no_crop) + ',' + repr( rand_y_pos)    )
+        
+        if style=='tower': 
+            #need to limit how far from the screen center the image starts for tower. if it is too fat, it will crop when the image rotates 'near' the user 
+            rand_y_pos=random.randint( (-1*half_img), (self.screen_h-half_img)) 
+            img_ctl.setPosition(start_x, rand_y_pos)
+            center='640,40'
+        elif style=='cyclone':
+            #cyclone animation depends on center being "auto". it has weird computation. 
+            #   if image is near the top it will look like it is spinning. the further down the y position is, the bigger the 'cyclone' radius 
+            rand_y_pos=random.randint( 0, (self.screen_h/2)) + random.randint( 0, (self.screen_h/2))
+            img_ctl.setPosition(rand_x_pos, rand_y_pos)
+            center='auto'
+        
+        ANIMATION.extend( [
+                           animation_format( 0, time, 'rotatey',   360,  0,   'linear', None, center,'loop=true' ),
+                           #animation_format( time, 2000, 'fade',   100,  0,   'quadratic',  'in', '','' ),
+                           #animation_format( 0   , 2000, 'fade',     0,100,   'quadratic', 'out', '','' ),
+                           ] )
+
+        ANIMATION.extend( fade_in_out_animation(0,time,2000) )
+        
+        img_ctl.setAnimations( ANIMATION )
+            
+    def rotating_tower(self,control_id, delay, time ):
+        self.rotate_animation('tower', control_id, delay, time )
+
+    def cyclone(self,control_id, delay, time ):
+        self.rotate_animation('cyclone', control_id, delay, time )
+
+    def drop_bounce(self, control_id, delay, time ):
+
+        img_ctl=self.window.getControl( control_id )
+        img_w=320  
+        img_h=img_ctl.getHeight()
+        half_img=int(img_w/2)
+        
+        ANIMATION=[]
+        bounce_delay=delay+(time*0.36)
+        bounce_rotate_delay=delay+(time*0.38)  #delay for rotate animation after bounce. 
+        
+        fade_delay=delay+(time*0.95)
+        
+        #log('  %d rnd_delay:%d' %(time, rnd_delay) )
+        
+        rand_x_pos=random.randint(0,(1280-img_w))
+        rand_y_pos=0
+
+        img_ctl.setPosition(rand_x_pos, 0)
+
+        sx=0;ex=0
+        sy=(-1*img_h) ;ey=(720-img_h)
+        cx=rand_x_pos+(img_w/2)  #image center for  rotate effect
+        cy=0
+
+        pos_or_neg=['','-']
+        pn=random.choice(pos_or_neg)
+
+
+        #log('  pos:%d,%d  %dx%d '   %(rand_x_pos,rand_y_pos, img_w,img_h ))
+
+        start="{0},{1}".format(sx,sy)
+        end="{0},{1}".format(ex,ey)
+        
+        #image hide animation either fade or flip as if falling backwards
+        image_hide_animation=random.choice( [ 
+                                       animation_format(bounce_delay, 2000,  'fade',   100,   0,'circle', 'in' ),
+                                       #animation_format(fade_delay, 2000,  'rotatex', 0,  120,'circle', 'in','%d,0' %img_h)
+                                       ])
+        #animation_format(out_delay, time, 'rotatex', 0, '%s90'%pn, 'circle', 'in', '%s,0'%(random.choice([360,720])) ), #center x needs to be in the
+        
+        ANIMATION.extend( [
+                           animation_format(       delay, time, 'slide', start, end,   'bounce', 'out' ),
+                           image_hide_animation,
+
+                           animation_format(delay, time, 'slide',  '0,0', '%s600,0'%pn, 'circle', 'in', '', '' ),
+                           ] )
+        
+
+        pos_or_neg=['','-']
+        pn=random.choice(pos_or_neg)
+        deg_end='{0}{1}'.format(pn,random.choice([0,180]))
+
+        img_ctl.setAnimations( ANIMATION ) 
+
+    def udlr_slide(self, control_id, delay, time ):
+        
+        img_ctl=self.window.getControl( control_id )
+        img_w=img_ctl.getWidth()
+        img_h=img_ctl.getHeight()
+        
+        ANIMATION=[]
+        rnd_delay=delay+random.choice([(time/2),(time/3),(time*0.6) ])
+        #log('  %d rnd_delay:%d' %(time, rnd_delay) )
+        
+        rand_x_pos=random.randint(0,(1280-img_w))
+        rand_y_pos=random.randint(0,(720-img_h))
+        v_or_h=random.choice([1,0])
+        
+        direction=random.choice([1,0])
+
+        #rnd_slide_tweens=random.choice(['sine','linear','quadratic','circle','cubic'])
+        rnd_slide_tweens=random.choice(['linear','quadratic'])
+        rnd_slide_easing=random.choice(['in','out'])
+
+        
+        if v_or_h:  #horizontal slide
+            img_ctl.setPosition(0, rand_y_pos)
+            rand_x_pos=0
+            #ANIMATION.extend( [animation_format(delay, time, 'slide', start, end, 'sine', 'out' ), ] )
+            sx=1280;ex=(-1*img_w)
+            sy=0;ey=0
+            cx=0
+            cy=rand_y_pos+(img_h/2) #image center for  rotate effect
+        else:      #vertical slide
+            img_ctl.setPosition(rand_x_pos, 0)
+            rand_y_pos=0
+            #ANIMATION.extend( )
+            sx=0;ex=0
+            sy=(-1*img_h) ;ey=720
+            cx=rand_x_pos+(img_w/2)  #image center for  rotate effect
+            cy=0
+        if direction:
+            sx,ex=ex,sx
+            sy,ey=ey,sy
+
+        #log('  pos:%d,%d  %dx%d '   %(rand_x_pos,rand_y_pos, img_w,img_h ))
+
+        start="{0},{1}".format(sx,sy)
+        end="{0},{1}".format(ex,ey)
+        
+        ANIMATION.extend( [
+                           animation_format(delay, time, 'slide', start, end, rnd_slide_tweens, rnd_slide_easing ), 
+                           ] )
+        
+        ANIMATION.extend( fade_in_out_animation(delay,time,1000) )
+        #ANIMATION.extend( self.addtl_animations_while_sliding( rnd_delay, 1000,cx,cy ) )
+
+        img_ctl.setAnimations( ANIMATION ) 
+        
+        
+    def warp(self,style,control_id, delay, time ):
+        
+        img_ctl=self.window.getControl( control_id )
+        img_w=img_ctl.getWidth()
+        img_h=img_ctl.getHeight()
+        img_x, img_y = img_ctl.getPosition()
+        
+        #img_centered="{0},{1}".format(640,360)
+        center_x=640-img_x #center x & y for this image relative to its original position
+        center_y=360-img_y
+        img_centered="{0},{1}".format(center_x,center_y)
+        
+        ANIMATION=[]
+        #rnd_delay=delay+random.choice([(time/2),(time/3),(time*0.6) ])
+        #log('  %d rnd_delay:%d' %(time, rnd_delay) )
+        
+        #rand_x_pos=random.randint(0,(1280-img_w))
+        #rand_y_pos=random.randint(0,(720-img_h))
+        #style='out'
+        if style=='out':
+            #this part is added because we can't 'loop' the image fade-in. we just position the image outside the screen
+            random_distance_from_center_x=self.screen_w + img_w
+            random_distance_from_center_y=self.screen_h + img_h 
+        else:
+            random_distance_from_center_x=random.randint( self.screen_w/3, (self.screen_w/3 + self.screen_w/2 )  )
+            random_distance_from_center_y=random.randint( self.screen_h/3, (self.screen_h/3 + self.screen_h/2 )  )
+
+        deg=random.randint(0,360)
+        #deg = 0
+        rad=math.radians(deg)
+        rand_x_pos = center_x + int( random_distance_from_center_x * math.cos(rad) )
+        rand_y_pos = center_y + int( random_distance_from_center_y * math.sin(rad) )
+        
+        loop='loop=false'
+        
+        if style=='out':
+            start="{0},{1}".format(rand_x_pos,rand_y_pos)
+            end=img_centered
+            zs=200;ze=0   #zoom start and end
+            fs=100;fe=40  #fade start & end
+            r_easing='in'
+            #edge animation does not work with zoom out. we cannot loop the fade-in of the image when it is at the edge because time is short, will loop too fast. 
+            edge_animation=('conditional','condition=false') #animation_format( delay, 1000, 'fade',   0,  100, 'cube',      'out',    '','' )
+        elif style=='in':
+            start=img_centered
+            end="{0},{1}".format(rand_x_pos,rand_y_pos)
+            #sx,ex=ex,sx
+            zs=5;ze=200   #zoom start and end
+            fs=0;fe=100   #fade start & end
+            edge_animation=animation_format( time-1000, 1000, 'fade',   100,    0, 'cube',      'in',    '',loop )
+            r_easing='out'
+            
+        #end="{0},{1}".format(1200,700)
+        #log( ' %d° start: %s end: %s'  %(deg, start, end ) )
+        ANIMATION.extend( [
+                           animation_format(delay, time, 'slide', start, end,   'cube',  r_easing,    '',loop ), 
+                           animation_format(delay, time, 'zoom',    zs,   ze,   'cube',      'in',    '',loop ),
+                           animation_format(delay, time, 'fade',    fs,   fe, 'circle',  r_easing,    '',loop ),
+                           edge_animation,
+                           ] )
+
+        img_ctl.setAnimations( ANIMATION ) 
+        
+    def warp_out(self, control_id, delay, time ):    
+        self.warp('out',control_id, delay, time)
+        
+    def warp_in(self, control_id, delay, time ):    
+        self.warp('in',control_id, delay, time)
+
+    def grid(self, control_id, delay, time ):
+        #iid = control_id - 100
+        #self.setPosition_5x4_grid(control_id, delay, (time/3), extra_animation)
+        iid = ( control_id % 20 ) - 1  #our control id's start at 101 to 120. 
+        if iid<0:iid=19 #<--grid_position_index
+                
+        #manipulate the fade wait so that the last few images don't linger  
+        fade_wait= abs( (time*1.8) - ( (iid+iid) * 500 ) )
+
+        extra_animation=fade_in_out_animation(0,fade_wait,2000)
+
+        self.slide_control_to_grid(control_id, iid, delay, (time/3), extra_animation )
+
+    def horizon(self, control_id, delay, time ):
+
+        img_ctl=self.window.getControl( control_id )
+        img_w=320  
+        img_h=img_ctl.getHeight()
+        half_img=int(img_w/2)
+
+        img_x, img_y = img_ctl.getPosition()
+        
+        ANIMATION=[]
+        
+        rand_x_pos=random.randint((-1*half_img),(1280-half_img))
+        rand_y_pos=self.screen_h  #start at bottom
+
+        img_ctl.setPosition(rand_x_pos, 0)
+        rand_y_pos=0
+
+        sx=0;ex=0
+        sy=self.screen_h-img_h ;ey=(-1*(img_h+800))
+
+        start="{0},{1}".format(sx,sy)
+        end="{0},{1}".format(ex,ey)
+
+        ANIMATION.extend( [
+                           animation_format( delay,    0, 'rotatex',   80,  80,   'linear', '','%d,0'%self.screen_h ),
+                           animation_format( delay, time,    'zoom',  300, 300,   'linear', '','auto' ),
+                           animation_format( delay, time,   'slide',start, end,   'linear', '','' ),
+                           animation_format( delay, time,    'fade',  100,   0,   'linear', '','' ),
+                           ] )
+        
+        img_ctl.setAnimations( ANIMATION ) 
+
+    def rotate_canvas(self, control_id, delay, time ):
+        pn=random.choice(['','-'])
+        
+        start='%s360'%pn
+        center_rx='%s,0'%(int(self.screen_h/2))
+        center_ry='%s,0'%(int(self.screen_w/2))
+        
+        rotate_animations=[
+                           [ animation_format( delay, (time/2),  'rotate', start, '0', 'cubic', 'inout',    'auto', '' ), ],
+                           [ animation_format( delay, (time/2), 'rotatex', start, '0', 'cubic', 'inout', center_rx, '' ), ],                                                      
+                           [ animation_format( delay, (time/2), 'rotatey', start, '0', 'cubic', 'inout', center_ry, '' ), ],
+                          ]
+        
+        self.group_ctl.setAnimations( random.choice( rotate_animations ) )
+
+    def arrange_all_controls_to_grid(self):
+        for idx, id in enumerate(self.image_control_ids):
+            extra_animation=[animation_format( 0, 0, 'zoom', 70,  70, '', '','auto','' ),]
+            self.slide_control_to_grid(id, idx, 0, 1000, extra_animation,True )
+
+
+    def apply_animation_to_all_controls(self, animation=[] ):
+        for control_id in self.image_control_ids:
+            img_ctl=self.window.getControl( control_id )
+            img_ctl.setAnimations( animation )
+
+
+    
+    beat_patterns=[
+                   [ [0,6],[5,6],[10,11],[15,11],[16,12],[17,12],[18,12],[19,13],[14,13],[9,8],[4,8],[3,7],[2,7],[1,7] ],
+                   [ [0,5,10,15], [1,6,11,16], [2,7,12,17],[3,8,13,18],[4,9,14,19],[3,8,13,18], [2,7,12,17], [1,6,11,16] ],
+                   [ [0,1,2,3,4],[10,11,12,13,14],[5,6,7,8,9],[15,16,17,18,19], ],  
+                   [ [0],[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12],[13],[14],[15],[16],[17],[18],[19], ],
+                   ]
+    
+    def bpm_grid_random(self, control_id, delay, time ):
+        self.arrange_all_controls_to_grid()
+        msec_bpm = self.get_bpm_msec()
+        
+        number_of_beats = int( time / msec_bpm )
+        for i in range(number_of_beats):
+            iid1=random.randint(0,19)
+            iid2=random.randint(0,19)
+            iid= [iid1,iid2] 
+            self.beat( iid, msec_bpm )
+    
+    def bpm_grid(self, control_id, delay, time ):
+        self.arrange_all_controls_to_grid()
+        msec_bpm = self.get_bpm_msec()
+        
+        pattern_cycle=cycle( random.choice(self.beat_patterns) )
+        animation_style=random.choice(['zoom','fade'])
+        number_of_beats = int( time / msec_bpm )
+        for i in range(number_of_beats):
+            index_ids=pattern_cycle.next()
+            self.beat( index_ids, msec_bpm, animation_style )
+
+    def beat(self, index_ids, msec_bpm, animation_style='zoom' ):
+        #'beat'-animate the control indicated by the grid index id
+        half_msec_bpm=(msec_bpm/2)
+
+        for index_id in index_ids:
+            ctl_id=self.translate_grid_index_to_control_id( index_id )
+            img_ctl=self.window.getControl( ctl_id )
+
+            ANIMATION=[]
+            if animation_style=='fade':
+                start=20
+                end=100
+                out_delay=msec_bpm*1.5
+                ANIMATION.extend( [ animation_format(0, 0,'zoom',70,70,'sine','in','auto','' ), ])
+            else:
+                start=70
+                end=100
+                out_delay=half_msec_bpm
+            
+            ANIMATION.extend( [
+                           animation_format(             0, half_msec_bpm,animation_style,start,  end,   'sine', 'in','auto','' ),
+                           animation_format( half_msec_bpm,     out_delay,animation_style,  end,start,   'sine',  'out','auto','' ),
+                           ] )
+            img_ctl.setAnimations( ANIMATION ) 
+            
+        xbmc.sleep( msec_bpm )
+
+    def slide_control_to_grid(self,control_id,grid_position_index, delay=0, time=0, extra_animation=[], set_position=False  ):
+        #log('   slide control to grid position %d' %(grid_position_index))
+        img_ctl=self.window.getControl( control_id )
+        img_w=img_ctl.getWidth()
+        img_h=img_ctl.getHeight()
+        img_x, img_y = img_ctl.getPosition()
+        #log( '  @image starts at %.3d,%.3d' %( img_x, img_y ) )
+        ANIMATION=[]
+        
+        #make sure invalid grid position index will just loop back to the beginning
+        grid_position_index=grid_position_index % len(self.grid_positions)
+        
+        x_pos, y_pos = self.grid_positions[grid_position_index]
+
+        #rnd_slide_tweens=random.choice(['sine','linear','quadratic','circle','cubic'])
+        rnd_slide_tweens=random.choice(['sine','quadratic'])
+
+        #slide uses relative positioning. we compute the delta for the desired vs current location and animate to slide there.
+        dx=x_pos - img_x
+        dy=y_pos - img_y
+        
+        start="{0},{1}".format(0,0)
+        end="{0},{1}".format(dx,dy)
+
+        if set_position:
+            img_ctl.setPosition(x_pos, y_pos)   #log( '  @set position %.3d,%.3d' %( x_pos, y_pos ) )
+            #same concept here but we compute the delta based on where the image was originally from
+            dx=img_x - x_pos
+            dy=img_y - y_pos 
+            
+            start="{0},{1}".format(dx,dy)
+            end="{0},{1}".format(0,0)
+
+        #log( '  start:%s end:%s ' %( start, end ) )
+        ANIMATION.extend( [
+                           animation_format(delay, time, 'slide', start, end, rnd_slide_tweens, 'out' ), 
+                           ] )
+        
+        ANIMATION.extend( extra_animation )
+        
+        img_ctl.setAnimations( ANIMATION )
+                
+    def setPosition_5x4_grid(self, control_id, delay=0, time=0, extra_animation=[], set_position=False ):
+        #positions image in a 5x4 grid based on its control id. 
+        #
+
+        img_ctl=self.window.getControl( control_id )
+        img_w=img_ctl.getWidth()
+        img_h=img_ctl.getHeight()
+
+        x_units = int( self.screen_w /5 )
+        y_units = int( self.screen_h /4 )
+        
+        img_x, img_y = img_ctl.getPosition()
+
+        ANIMATION=[]
+        
+        iid = ( control_id % 20 ) - 1  #our control id's start at 101 to 120. 
+        if iid<0:iid=19
+        
+        #log('   control_id:{0} iid:{1}'.format(control_id,iid) )
+        
+        #grid 5 x 4
+        new_x = iid % 5
+        new_y = int( iid / 5 )   #rounds down
+        
+        x_pos= new_x * x_units #+135
+        y_pos= new_y * y_units #+96
+        
+        #x_pos,y_pos=self.center_position(img_ctl, x_pos, y_pos )
+        
+        #slide uses relative positioning. we compute the delta for the desired vs current location and animate to slide there.
+        dx=x_pos - img_x
+        dy=y_pos - img_y
+
+        #rnd_slide_tweens=random.choice(['sine','linear','quadratic','circle','cubic'])
+        rnd_slide_tweens=random.choice(['sine','quadratic'])
+
+        #log('  iid:%d  pos:%d,%d  -> %dx%d  wait:%d'   %(iid, img_x,img_y, x_pos,y_pos,fade_wait))
+
+        start="{0},{1}".format(img_x,img_y)
+        end="{0},{1}".format(dx,dy)
+
+        ANIMATION.extend( [
+                           animation_format(delay, time, 'slide', start, end, rnd_slide_tweens, 'out' ), 
+                           ] )
+        
+        ANIMATION.extend( extra_animation )
+#        ANIMATION.extend( self.addtl_animations_while_sliding( rnd_delay, 1000,cx,cy ) )
+        img_ctl.setAnimations( ANIMATION )        
+        
+
+        if set_position:
+            self.wait( delay + time )
+            img_ctl.setPosition(x_pos, y_pos)
+            log( '  @set position %.3d,%.3d %d' %( x_pos, y_pos, control_id ) )
+        
+    def translate_grid_index_to_control_id(self, grid_index):
+        #this works because we arrange the image controls with grid id in define_grid_positions
+        return self.image_control_ids[ grid_index ]
+
+    def get_bpm_msec(self, default=120):
+        try: bpm=int( Window(10000).getProperty('bpm' ) )
+        except: bpm=default
+        if bpm==0: bpm=default  #songbpm.com call didn't return any result
+        
+        msec_bpm      = 60000/bpm
+        return msec_bpm
+
+    def reset_group_animation(self):
+        self.group_ctl.setAnimations( [] )
+    
+    def log(self, msg):
+        log(u'a-thread: %s' % msg)
+
+    def center_setPosition(self, ctl, cx,cy):
+        ix,iy=self.center_position(ctl, cx, cy)
+        ctl.setPosition(ix, iy)
+    
+    def center_position(self, ctl, cx,cy):
+        img_w=ctl.getWidth()
+        img_h=ctl.getHeight()
+        
+        ix=cx - int(img_w/2)
+        iy=cy - int(img_h/2)
+        
+        return ix, iy        
+        
+    animation_functions=[
+                         ('',rotating_tower),
+                         ('',cyclone),
+                         ('',drop_bounce),
+                         ('',udlr_slide),
+                         ('r',warp_in),
+                         ('',warp_out),
+                         ('',grid),      
+                         ('u',horizon),
+                         ('once',rotate_canvas),
+                         ('onceb',bpm_grid_random),
+                         ('onceb',bpm_grid), 
+                         ]
+
+
+class ScreensaverXMLWindow(WindowXMLDialog):
+    def __init__(self, *args, **kwargs):
+        WindowXMLDialog.__init__(self, *args, **kwargs)
+        self.exit_callback = kwargs.get("exit_callback")
+
+    def onAction(self, action):
+        action_id = action.getId()
+        self.exit_callback(action_id)
+
+class ScreensaverBase(object):
+    #MODE = None
+    #IMAGE_CONTROL_COUNT = 10
+    #FAST_IMAGE_COUNT = 0
+    #NEXT_SLIDE_TIME = 2000
+    BACKGROUND_IMAGE = 'srr_blackbg.jpg'
+    image_control_ids=[101,102,103,104,105]   #control id's defined in ScreensaverXMLWindow xml file
+    
+    pause_requested=False
+    info_requested=False
+    #image_controls_cycle=''
+
+    def __init__(self, thread_event, facts_queue, worker_thread):
+        #self.log('__init__ start')
+        self.exit_requested = False
+        self.background_control = None
+        self.preload_control = None
+        self.image_count = 0
+        #self.image_controls = []
+        #self.tni_controls = []
+        self.global_controls = []
+        self.exit_monitor = ExitMonitor(self.stop)
+        self.facts_queue=facts_queue
+        self.worker_thread=worker_thread
+        self.init_xbmc_window()
+        self.init_global_controls()
+        self.load_settings()
+        self.init_cycle_controls()
+        self.stack_cycle_controls()
+        #self.log('__init__ end')
+    
+    def init_xbmc_window(self):
+        self.xbmc_window = ScreensaverXMLWindow( "slideshow02.xml", ADDON_PATH, defaultSkin='Default', exit_callback=self.action_id_handler )
+        self.xbmc_window.setCoordinateResolution(5)
+        self.xbmc_window.show()
+
+    def init_global_controls(self):
+        #self.log('  init_global_controls start')
+        
+        loading_img = xbmc.validatePath('/'.join((ADDON_PATH, 'resources', 'skins', 'Default', 'media', 'srr_busy.gif' )))
+        self.loading_control = ControlImage(576, 296, 128, 128, loading_img)
+        self.preload_control = ControlImage(-1, -1, 1, 1, '')
+        self.background_control = ControlImage(0, 0, 1280, 720, '')
+        self.global_controls = [
+            self.preload_control, self.background_control, self.loading_control
+        ]
+        self.xbmc_window.addControls(self.global_controls)
+        #self.log('  init_global_controls end')
+
+    def load_settings(self):
+        pass
+
+    def init_cycle_controls(self):
+        #self.log('  init_cycle_controls start')
+        #for i in xrange(self.IMAGE_CONTROL_COUNT):
+        #    img_control = ControlImage(0, 0, 0, 0, '', aspectRatio=2)  #(values 0 = stretch (default), 1 = scale up (crops), 2 = scale down (black bars)
+        #    txt_control = ControlTextBox(0, 0, 0, 0, font='font16')
+#                     xbfont_left = 0x00000000
+#                     xbfont_right = 0x00000001
+#                     xbfont_center_x = 0x00000002
+#                     xbfont_center_y = 0x00000004
+#                     xbfont_truncated = 0x00000008
+            #ControlLabel(x, y, width, height, label, font=None, textColor=None, disabledColor=None, alignment=0, hasPath=False, angle=0)
+            #txt_control = ControlLabel(0, 0, 0, 0, '', font='font30', textColor='', disabledColor='', alignment=6, hasPath=False, angle=0)
+            
+            #self.image_controls.append(img_control)
+        #    self.tni_controls.append([txt_control,img_control])
+        #self.log('  init_cycle_controls end')
+        pass
+        
+    def stack_cycle_controls(self):
+        #self.log('stack_cycle_controls start')
+        # add controls to the window in same order as image_controls list
+        # so any new image will be in front of all previous images
+        #self.xbmc_window.addControls(self.image_controls)
+        #self.xbmc_window.addControls(self.text_controls)
+
+        #self.xbmc_window.addControls(self.tni_controls[1])
+        #self.xbmc_window.addControls(self.tni_controls[0])
+        
+        #self.log('stack_cycle_controls end')
+        pass
+
+    def start_loop(self):
+        self.log('screensaver start_loop')
+        
+        #tni_controls_cycle= cycle(self.tni_controls)
+        self.image_controls_cycle= cycle(self.image_control_ids)
+
+        self.hide_loading_indicator()
+        
+        log('   initial start: queue %d' %(self.facts_queue.qsize())  )
+        
+        factlet=self.facts_queue.get()
+        #self.log('  image_url_cycle.next %s' % image_url)
+        
+        while not self.exit_requested:
+            #self.log('  using image: %s ' % ( repr(factlet) ) )
+            self.log( '  ' + pprint.pformat(factlet, indent=1) )
+
+            #pops an image control
+            
+            image_control = self.image_controls_cycle.next()
+            
+            self.process_image(image_control, factlet)
+            
+            try:
+                #if self.facts_queue.empty():
+                #    self.wait()
+                #    log('   queue empty %d' %(self.facts_queue.qsize())  )
+                #else:
+                factlet=self.facts_queue.get()
+                    #log('   got next item from queue ' + factlet['name'])
+                    #factlet=self.facts_queue.get(block=True,timeout=5000)  #doesn't throw exception if empty!
+                    
+            except Queue.Empty:
+                self.log('   queue empty thrown')
+                self.wait()
+                
+            self.wait()
+            if self.image_count < self.FAST_IMAGE_COUNT:
+                self.image_count += 1
+            else:
+                #self.preload_image(image_url)
+                self.preload_image(factlet['image'])
+                self.wait()
+                
+        self.log('start_loop end')
+        
+        #return the screensaver back
+        #xbmc.executeJSONRPC('{ "jsonrpc": "2.0", "id": 0, "method":"Settings.setSettingValue", "params": {"setting":"screensaver.mode", "value" : "%s"} }' % saver_mode )
+
+
+    def get_description_and_images(self, source):
+        #self.log('get_images2')
+        self.image_aspect_ratio = 16.0 / 9.0
+
+        images = []
+
+        if source == 'image_folder':
+            path = SlideshowCacheFolder  #addon.getSetting('image_path')
+            if path:
+                images = self._get_folder_images(path)
+        elif source == 'q':
+            #implement width & height extract here.
+            images=[[item[0], item[1],item[2], item[3], ] for item in self.facts_queue.queue]
+            #texts=[item[0] for item in q.queue]
+            #for i in images: self.log('   image: %s' %i)
+            #self.log('    %d images' % len(images))
+
+        return images
+
+
+    #for movie, audio or tv shows
+    def _get_json_images(self, method, key, prop):
+        self.log('_get_json_images start')
+        query = {
+            'jsonrpc': '2.0',
+            'id': 0,
+            'method': method,
+            'params': {
+                'properties': [prop],
+            }
+        }
+        response = json.loads(xbmc.executeJSONRPC(json.dumps(query)))
+        images = [
+            element[prop] for element
+            in response.get('result', {}).get(key, [])
+            if element.get(prop)
+        ]
+        self.log('_get_json_images end')
+        return images
+
+    def _get_folder_images(self, path):
+        self.log('_get_folder_images started with path: %s' % repr(path))
+        dirs, files = xbmcvfs.listdir(path)
+        images = [
+            xbmc.validatePath(path + f) for f in files
+            if f.lower()[-3:] in ('jpg', 'png')
+        ]
+        #if addon.getSetting('recursive') == 'true':
+        #    for directory in dirs:
+        #        if directory.startswith('.'):
+        #            continue
+        #        images.extend(
+        #            self._get_folder_images(
+        #                xbmc.validatePath('/'.join((path, directory, '')))
+        #            )
+        #        )
+        self.log('_get_folder_images ends')
+        return images
+
+    def hide_loading_indicator(self):
+        bg_img = xbmc.validatePath('/'.join(( ADDON_PATH, 'resources', 'skins', 'Default', 'media', self.BACKGROUND_IMAGE )))
+        #bg_img = self.BACKGROUND_IMAGE
+        self.loading_control.setAnimations([(
+            'conditional',
+            'effect=fade start=100 end=0 time=500 condition=true'
+        )])
+        self.background_control.setAnimations([(
+            'conditional',
+            'effect=fade start=0 end=100 time=500 delay=500 condition=true'
+        )])
+        self.background_control.setImage(bg_img)
+
+    def process_image(self, image_control_id, image_url):
+        # Needs to be implemented in sub class
+        raise NotImplementedError
+
+    def preload_image(self, image_url):
+        # set the next image to an unvisible image-control for caching
+        #self.log('preloading image: %s' % repr(image_url))
+        self.preload_control.setImage(image_url)
+        #self.log('preloading done')
+
+    def wait(self, msec=0):
+        # wait in chunks of 500ms to react earlier on exit request
+        
+        chunk_wait_time = int(CHUNK_WAIT_TIME)
+        remaining_wait_time = msec if msec > 0 else int(self.NEXT_SLIDE_TIME)
+        #self.log('waiting for %d' %remaining_wait_time )
+        while remaining_wait_time > 0:
+            #self.log('waiting %d' %remaining_wait_time )
+            if not self.worker_thread.isAlive():
+                self.log('worker thread died')
+                self.exit_requested=True
+
+            if self.exit_requested:
+                self.log('wait aborted')
+                return
+            
+            if remaining_wait_time < chunk_wait_time:
+                chunk_wait_time = remaining_wait_time
+            remaining_wait_time -= chunk_wait_time
+            xbmc.sleep(chunk_wait_time)
+
+    def action_id_handler(self,action_id):
+        #log('  action ID:' + str(action_id) )
+        if action_id in ACTION_IDS_EXIT:
+            #self.exit_callback()
+            self.stop()
+        if action_id in ACTION_IDS_PAUSE:  
+            self.pause()          
+
+        if action_id == 11: #xbmcgui.ACTION_SHOW_INFO:   
+            self.info_requested=not self.info_requested            
+
+    def stop(self,action_id=0):
+        self.log('stop')
+        self.exit_requested = True
+        self.exit_monitor = None
+
+    def pause(self):
+        #pause disabled. too complicated(not possible?) to stop animation  
+        #self.pause_requested = not self.pause_requested
+        #self.log('pause %s' %self.pause_requested )
+        pass
+
+    def close(self):
+        self.log('close')
+        self.del_controls()
+
+    def del_controls(self):
+        #self.log('del_controls start')
+        #self.xbmc_window.removeControls(self.img_controls)  
+        #try: self.xbmc_window.removeControls(self.tni_controls[0]) #imageControls
+        #except: pass
+        #try: self.xbmc_window.removeControls(self.tni_controls[1]) #textBoxes
+        #except: pass
+        
+        self.xbmc_window.removeControls(self.global_controls)
+        self.preload_control = None
+        self.background_control = None
+        self.loading_control = None
+        #self.tni_controls = []
+        self.global_controls = []
+        self.xbmc_window.close()
+        self.xbmc_window = None
+        #self.log('del_controls end')
+
+    def log(self, msg):
+        log(u'slideshow: %s' % msg)
+
+class ExitMonitor(xbmc.Monitor):
+
+    def __init__(self, exit_callback):
+        self.exit_callback = exit_callback
+
+    def onScreensaverDeactivated(self):
+        self.exit_callback()
+
+    def abortRequested(self):
+        self.exit_callback()
+
+class bggslide(ScreensaverBase):
+    BACKGROUND_IMAGE = '' #'srr_blackbg.jpg'
+    SPEED = 0.7
+
+    image_control_ids=[101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120]
+    temp_list=[ {'src':'duckduckgo.png', 'width':'320','height':'180'} ]  #random error at start due to empty list
+    CTL_TEXT_GROUP=200
+    CTL_TITLE_TBOX=201
+    CTL_TITLE_TBOX2=203
+    CTL_TITLE_TBOX3=204
+    CTL_TITLE_DESC=202
+    
+    def load_settings(self):
+        self.SPEED = 1.0
+        self.NEXT_SLIDE_TIME = int(50000)
+        
+        self.show_title=addon.getSetting('show_title') == "true"
+        
+        try: self.NEXT_IMAGE_TIME = float(addon.getSetting('new_image_wait_sec')) *1000
+        except: self.NEXT_IMAGE_TIME = 5000   #default 5 seconds till new image is sent to animator thread
+
+    def init_xbmc_window(self):
+        self.xbmc_window = ScreensaverXMLWindow( "slideshow04.xml", ADDON_PATH, defaultSkin='Default', exit_callback=self.action_id_handler )
+        self.xbmc_window.setCoordinateResolution(5)
+        self.xbmc_window.show()
+    
+    def stack_cycle_controls(self):
+        pass
+
+    def start_loop(self):
+        #self.log('  start_loop')
+        
+        self.music_images_cycle=cycle( self.temp_list )
+        
+        self.image_controls_cycle= cycle(self.image_control_ids)
+        self.hide_loading_indicator()
+
+        #t = ffg_hangman(self.xbmc_window, self.title_control, factlet['name'] ) ; t.start()
+        self.animator_thread=ctl_animator( self.xbmc_window, self.image_control_ids )
+        self.animator_thread.start()
+        
+        while not self.exit_requested:
+            try:
+                if self.facts_queue.empty():
+                    #self.log('   queue empty '   )
+                    self.cycle_image_into_control()
+                    self.wait( self.NEXT_IMAGE_TIME )  #taken from settings
+                    #self.wait(789)
+                else:
+                    self.wait(2000)
+                    #factlet=self.facts_queue.get()
+                    factlet=self.facts_queue.get(block=True,timeout=5000)  #doesn't throw exception if empty!
+
+                    #self.log( '  worker is alive:' + repr(self.worker_thread.isAlive()) )
+                    self.log( '  using(%d):%s' %(self.facts_queue.qsize(),  pprint.pformat(factlet, indent=1, depth=1))  )
+                    
+                    factlet_type=factlet.get('factlet_type')
+                    
+                    if factlet_type =='music_status:stop':  #no music playing
+                        self.log( '  music_status:stop' )
+                        #self.exit_requested=True
+                        pass
+
+                    elif factlet_type =='music_status:half':  #playing music is at halfway point
+                        #self.log( '  show halfway point title' )
+                        self.show_title_slide(factlet)
+
+                    elif factlet_type =='musicthumbs':
+                        #self.process_music_slide(factlet)
+                        self.load_new_images_to_cycle(factlet)
+                        self.show_title_slide(factlet)
+                        
+                    self.wait(480)  
+
+                #60,000 / bpm = ms
+
+                #self.show_title_slide(factlet)
+                #self.wait(8000)
+                
+            #if self.watchdog>=20:
+            #    self.exit_requested=True
+                    
+            except Queue.Empty:
+                self.log('   queue empty thrown')
+                self.wait(5000)
+            
+            except:
+                self.exit_requested=True   
+                self.animator_thread.stop()  
+                raise
+        
+        self.animator_thread.stop()
+                
+        self.log('start_loop end')
+
+
+    def load_new_images_to_cycle(self, factlet):
+        
+        new_images=factlet.get('images')
+        img_count=len(new_images)
+        
+        self.log('   loading %d new images into cycle' %img_count )
+        
+        if img_count > 1:
+            self.music_images_cycle=cycle( new_images )
+        else:
+            self.log('   no images to load')
+            
+        current_bpm=factlet.get('bpm')
+        Window(10000).setProperty('bpm',str(current_bpm) )
+        #log('  wbpm:'+ repr( current_bpm ))
+        
+        #new song. put x the new images to controls to speed up transition
+        self.cycle_image_into_control(5)
+
+    def show_title_slide(self, factlet):
+        #show and animate the currently playing music title
+        if self.show_title==False:  #taken from settings.xml
+            return
+        
+        title_group_ctl=self.xbmc_window.getControl( self.CTL_TEXT_GROUP )
+        song_title=factlet.get('title')
+        song_artist=factlet.get('artist')
+        song_album=factlet.get('album')
+
+        control=self.xbmc_window.getControl(self.CTL_TITLE_TBOX)        
+        control.setText( song_title )
+
+        control=self.xbmc_window.getControl(self.CTL_TITLE_TBOX2)
+        control.setText( song_artist )
+        
+        title_group_ctl.setAnimations( self.random_animations( 0, 20000, 800 )  )
+        
+    def cycle_image_into_control(self, images_to_cycle=1):
+        #this method replaces process_music_slide()
+        #  feeds one image at a time. called when queue is empty. this way, we will be able to react if new song is playing.
+        
+        for x in range(1,images_to_cycle+1):
+            img_dict =self.music_images_cycle.next()
+            iid      =self.image_controls_cycle.next()
+            img_ctl=self.xbmc_window.getControl( iid )
+
+            #self.log('   cycling image(%d) into control %d' %(x,iid) )
+            self.fit_image_320_box(img_dict, img_ctl )
+
+    def process_music_slide(self, factlet):
+        #pushes images into control. no guard against having too many images --> how many img_controls we have 
+        #  this method will feed images without checking that a new song is playing
+        #  this is no longer used. left here for reference and testing.   
+        
+        images=factlet.get('images')
+        img_count=len(images)
+        for i, img in enumerate(images):
+            iid=self.image_controls_cycle.next()
+            
+            #log('  %d %d - iid:%.4d image:%s' %(l, i, iid,repr(img.get('src'))  )          )
+            #self.animate_by_udlr_slide( iid, img, (i)*2000, 10000 )
+            #self.animate_by_drop( iid, img, (i)*2000, 10000 )
+            #self.animate_by_rotating_tower( iid, img, (i)*2000, 10000 )
+            img_ctl=self.xbmc_window.getControl( iid )
+            img_w=int(img.get('width'))
+            img_h=int(img.get('height'))
+            image=img.get('src')
+            
+            self.log('  %dx%d - iid:%.4d image:%s' %(img_w, img_h, iid,repr(img.get('src'))  )          )
+            
+            ar=float(img_w)/img_h
+            
+            #log( 'ar:'+ repr( ar))
+            if ar>1:
+                if img_w >320:
+                    img_w=320
+                    img_h=int( img_w/ar )
+                    #log( 'img w reduced to %dx%d' %(img_w,img_h))
+            else:
+                if img_h >320:
+                    img_h=320
+                    img_w=int( img_h*ar )
+                    #log( 'img h reduced to %dx%d' %(img_w,img_h))
+                
+            #img_ctl.setVisible(False)
+            img_ctl.setWidth( img_w )     ##  
+            img_ctl.setHeight( img_h )    ##
+            img_ctl.setImage(image)
+            #img_ctl.setVisible(True)
+
+            #feed the images slowly so that there is no abrupt change
+            self.wait(self.NEXT_IMAGE_TIME)  #problem with this is that we feed the images without regard to new song. 
+            
+    def fit_image_320_box(self, img_dict, img_ctl ):
+
+        img_w=int(img_dict.get('width'))
+        img_h=int(img_dict.get('height'))
+        image=img_dict.get('src')
+        
+        #self.log('  %dx%d - iid:%.4d image:%s' %(img_w, img_h, iid,repr(img.get('src'))  )          )
+        
+        #use aspect ration to compute new size
+        ar=float(img_w)/img_h
+        
+        if ar>1:
+            if img_w >320:
+                img_w=320
+                img_h=int( img_w/ar )
+                #log( 'img w reduced to %dx%d' %(img_w,img_h))
+        else:
+            if img_h >320:
+                img_h=320
+                img_w=int( img_h*ar )
+                #log( 'img h reduced to %dx%d' %(img_w,img_h))
+            
+        img_ctl.setVisible(False)
+        #i initially set out to have the controls exactly the same size as the images. changed to fit in a 320x320 square defined in the .xml file
+        #img_ctl.setWidth(  img_w )   
+        #img_ctl.setHeight( img_h )
+        
+        #this is done so that we can add other controls in animation (e.g. group control that shows the song title) 
+        try: img_ctl.setImage( image ) #consequence is we skip one image in our cycle 
+        except AttributeError:
+            pass
+            
+        img_ctl.setVisible(True)
+
+    def random_animations(self, start_delay, wait_time, ctl_w=0, ctl_h=0):
+        #note start & end coords are relative to where image is on screen.
+
+        time=4000   #animation time
+        in_delay=start_delay
+        out_delay=in_delay + wait_time - time
+        
+        rotates=['rotatex', 'rotatey']
+        zoom_starts=[0,500]
+        pos_or_neg=['','-']
+        
+        rotate=random.choice(rotates)
+        pn=random.choice(pos_or_neg)
+        
+        zs=random.choice(zoom_starts)
+        
+        direction=random.choice([1,0])
+        up_down=random.choice([1,0])
+        
+        deg=random.randint(0,360)
+        rad=math.radians(deg)
+        sx = 720 * math.cos(rad)
+        sy = 720 * math.sin(rad)
+        start='%d,%d'%(sx,sy)
+        end  ='%d,%d'%( 0, 0)
+        #log('  %d - (%d,%d)' %(deg, sx,sy )   )
+
+        rnd_deg='%s%s'%(pn,(deg+deg))
+                
+        in_tweens=['circle','sine','back']  #,'elastic','bounce']
+        in_tween=random.choice(in_tweens)    
+
+        out_tweens=['circle','sine','back']
+        out_tween=random.choice(out_tweens)    
+
+        v_or_h=random.choice([1,0])
+        direction=random.choice([1,0])
+
+        udlr_x=random.randint(-500,500)
+        udlr_y=random.randint(-200,200)
+        if v_or_h:  #horizontal slide
+            udlr_x=0
+            udlr_sx=640;   udlr_ex= -640
+            udlr_sy=udlr_y;udlr_ey=udlr_y
+        else:      #vertical slide
+            udlr_y=0
+            udlr_sx=udlr_x;udlr_ex=udlr_x
+            udlr_sy=360;udlr_ey=-560
+            
+        if direction:
+            udlr_sx,udlr_ex=udlr_ex,udlr_sx
+            udlr_sy,udlr_ey=udlr_ey,udlr_sy
+
+        udlr_start='%d,%d'%(udlr_sx,udlr_sy)
+        udlr_end  ='%d,%d'%(udlr_ex,udlr_ey)
+
+
+        phase_in_animations=[
+           [ #slide 360 from anywhere
+            animation_format(in_delay, time, 'slide', start, end, in_tween, 'out' ),
+           ],
+           [ #drop from top
+            #animation_format(in_delay, time, 'slide', '0,-720', 0, 'bounce', 'out' ),
+           ],
+           [ #rotates 
+            animation_format(in_delay, time, rotate,      rnd_deg, 0, 'circle', 'out', 'auto' ),
+           ],
+           [ #spin 
+            animation_format(in_delay, time, 'rotate', '%s360'%pn, 0, 'circle', 'out', '640,360' ),
+           ],
+           [ #zoom from very big or very small
+            animation_format(in_delay, time, 'zoom', zs, 100, in_tween, 'out', 'auto' ),
+            #('conditional', 'condition=true delay=%s time=%s effect=zoom    start=%s       end=100      tween=%s      easing=out   center=auto ' %(  in_delay, time, zs , in_tween) ),
+           ],
+           
+        ]
+
+        phase_out_animations=[
+           [ #slide 360 away
+            animation_format(out_delay, time, 'slide', end, start, out_tween, 'in' ),
+            #('conditional', 'condition=true delay=%s time=%s effect=slide   start=%s   end=%s        tween=%s      easing=in    ' %( out_delay, time, end,start,   out_tween) ),
+           ],
+           [ #flip horizontal. the random.choice(360/720) is for the center.  makes the image either fall front/back or flip front/back
+            animation_format(out_delay, time, 'rotatex', 0, '%s90'%pn, 'circle', 'in', '%s,0'%(random.choice([360,720])) ), #center x needs to be in the
+            #('conditional', 'condition=true delay=%s time=%s effect=rotatex start=0    end=%s90      tween=circle  easing=in  center=%s,0  ' %( out_delay, time, pn,          centerx ) ),
+           ],
+           [ #random rotates
+            animation_format(out_delay, time, rotate, 0, rnd_deg, 'circle', 'in', 'auto' ),
+            #('conditional', 'condition=true delay=%s time=%s effect=%s      start=0    end=%s%s      tween=circle  easing=in  center=auto ' %( out_delay, time, rotate, pn, (deg+deg)  ) ),
+           ],
+           [ #spin 
+            animation_format(out_delay, time, 'rotate', 0, '%s360'%pn, 'circle', 'in', '640,360' ),
+           ],
+
+           [ #zoom from very big or very small
+            animation_format(out_delay, time, 'zoom', 100, zs, out_tween, 'in', 'auto' ),
+            #('conditional', 'condition=true delay=%s time=%s effect=zoom    start=100    end=%s      tween=%s  easing=in  center=auto ' %( out_delay, time, zs , out_tween ) ),
+           ],
+           
+        ]
+
+        animation=[]
+        animation.extend( fade_in_out_animation(in_delay, wait_time, time) )
+
+        if random.choice([0,0,0,1]):   #random.getrandbits(1):
+            #for single continuous animation (not in-wait-out)
+            animation.extend( [animation_format(in_delay, wait_time, 'slide', udlr_start, udlr_end, 'linear', '' )] )
+        else:
+            animation.extend( random.choice(phase_in_animations) )
+            #animation.extend( phase_in_animations[3] )
+            animation.extend( random.choice(phase_out_animations) )
+            #animation.extend( phase_out_animations[3] )
+        
+        return animation
+
+
+def from_PIL( image_url ):
+    from PIL import Image
+    from StringIO import StringIO
+    r = requests.get( factlet.get('image') )
+    pil_img=Image.open(StringIO(r.content))
+    log('***cahced:'+ repr(r.from_cache) +'***' + repr(pil_img) )
+        
+def animation_format(delay, time, effect, start, end, tween='', easing='', center='', extras=''  ):
+    a='condition=true delay={0} time={1} '.format(delay, time) 
+        
+    a+= 'effect={} '.format(effect)
+    if start!=None: a+= 'start={} '.format(start)
+    if end!=None:   a+= 'end={} '.format(end)
+    
+    if center: a+= 'center={} '.format(center)
+    if tween:  a+= 'tween={} '.format(tween)
+    if easing: a+= 'easing={} '.format(easing)  #'in' 'out'
+    if extras: a+= extras  
+    
+    #log( '  ' + a ) 
+    return ('conditional', a )
+    
+def fade_in_out_animation(start_delay, wait_time, fade_time=2000 ):
+    out_delay=start_delay + wait_time - fade_time
+    fade_in_animation= ('conditional', 'condition=true delay={delay} time={time} effect=fade  start=0    end=100  tween=quadratic easing=out  '.format(delay=start_delay, time=fade_time) )
+    fade_out_animation=('conditional', 'condition=true delay={delay} time={time} effect=fade  start=100  end=0    tween=quadratic easing=in   '.format(delay=out_delay  , time=fade_time) )
+    
+    return [fade_in_animation,fade_out_animation]
+    
+    
+    
+def cycle(iterable):
+    saved = []
+    for element in iterable:
+        yield element
+        saved.append(element)
+    while saved:
+        for element in saved:
+            yield element
+
+if __name__ == '__main__':
+    pass

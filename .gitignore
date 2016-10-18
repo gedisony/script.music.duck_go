@@ -1,0 +1,7 @@
+.pydevproject
+.project
+.settings/
+*.py[co]
+*.pyo
+icon.pdn
+*.sqlite
