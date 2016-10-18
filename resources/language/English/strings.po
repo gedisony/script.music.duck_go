@@ -50,6 +50,13 @@ msgstr ""
 
 
 
+msgctxt "#32305"
+msgid "Success"
+msgstr ""
+
+msgctxt "#32306"
+msgid "File does not exist"
+msgstr ""
 
 
 

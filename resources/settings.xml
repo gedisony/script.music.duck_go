@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
     <category label="32100">
-    	<setting id="clear_cache_button"  type="action"      label="32101"  default="" action="RunAddon(script.screensaver.whatsit,mode=action&arg1=clear_cache)"/>
+    	<setting id="clear_cache_button"  type="action"      label="32101"  default="" action="RunAddon(script.music.duck_go,mode=action&arg1=clear_cache)"/>
 		<setting id="label1"              type="lsep"        label="32105"  enabled="true"               />
     	<setting id="search_template"     type="text"        label="32104"  default="'{title}' related:'{artist}' music art images"                   />
     	<setting id="new_image_wait_sec"  type="number"      label="32106"  default="5"                   />

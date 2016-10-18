@@ -1,3 +1,6 @@
+0.3.0
+ - start music duck go project
+
 0.2.3
  - include boardgame family in in boardgame stats
  - create profile folder if not exist

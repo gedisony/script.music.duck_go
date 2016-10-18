@@ -146,6 +146,9 @@ def action(arg1, arg2):
         
     pass
 
+def set_clear_cache_file_result(value):
+    setSetting('clear_cache_button', value)
+
 def setSetting(setting_id, value):
     addon.setSetting(setting_id, value)
     pass
