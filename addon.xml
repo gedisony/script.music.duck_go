@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.music.duck_go" 
 	name="Music Duck Go" 
-	version="0.3.0" 
+	version="0.3.1" 
 	provider-name="gedisony">
     <requires>
         <import addon="xbmc.python"                  version="2.20.0"/>
@@ -15,8 +15,8 @@
         <platform>all</platform>
         <language/>
         <website></website>
-        <source></source>
-        <forum>http://forum.kodi.tv/showthread.php?pid=2429434</forum>
+        <source>https://github.com/gedisony/script.music.duck_go</source>
+        <forum>http://forum.kodi.tv/showthread.php?tid=294154</forum>
         <email>gediso+ny at gmail dot com</email>
         <summary lang="en">Music -> Images -> Slideshow.</summary>
         <disclaimer>This add-on is not published nor endorsed by Duck Duck Go</disclaimer>

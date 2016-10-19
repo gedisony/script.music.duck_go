@@ -64,7 +64,7 @@ class duckduckgo_image(factsBase):
         query='{0}'.format(requests.utils.quote(   search_term  ) )
         
         url='https://api.duckduckgo.com/?q={0}&ia=images&iax=1'.format(query )  
-        log( url )      
+        log( '  ' + url )      
         
         page = requests.get(url , timeout=REQ_TIMEOUT)
         #log( repr( page.text ))
@@ -83,8 +83,8 @@ class duckduckgo_image(factsBase):
         #call the ajax function that returns the actual images    
         #url='https://api.duckduckgo.com/i.js?q={0}&l=wt-wt&cb=ddg_spice_images&vqd={1}'.format(query,vqd )  #<--the json is inside a ddg_spice_images( {...} )
         url='https://api.duckduckgo.com/i.js?l=wt-wt&o=json&q={0}&vqd={1}&f='.format(query,vqd )             #<--direct json no cleanup
-        
-        log( url )
+        log( '  ' + url )
+         
         page = requests.get(url , timeout=REQ_TIMEOUT)
         #log( repr( page.text ))
         
@@ -116,30 +116,35 @@ class duckduckgo_image(factsBase):
 
 class songbpm_com():
     def get_bpm(self, song_title, artist):
-        
+
         bpm=0
         #https://songbpm.com/?artist=whitney+houston&title=one+moment+in+time
-        artist='artist={}'.format( requests.utils.quote(   artist  ) )
-        title='title={}'.format( requests.utils.quote(   song_title  ) )
         
-        url="https://songbpm.com/?"+artist+"&"+title
-        log('  '+ url)
-        r=requests.get(url, timeout=REQ_TIMEOUT )
-        if r.status_code== requests.codes.ok:
+        try:
+            artist='artist={}'.format( requests.utils.quote(   artist  ) )
+            title='title={}'.format( requests.utils.quote(   song_title  ) )
             
-            soup = bs4.BeautifulSoup(r.text) 
-            
-            d = soup.select('div.side-container div.bpm.side div.number'  )
-            ### probably get a more accurate parsing ? 
-            #d = soup.select('div.listing.'  )
-            #d=soup.find("div", {"class": "side-container"})
-            
-            #log( repr( d[0].text ) )
-            try:
-                bpm=int(d[0].text)
-            except:
-                bpm=0
-            #d=soup.findAll()
+            url="https://songbpm.com/?"+artist+"&"+title
+            log('  '+ url)
+            r=requests.get(url, timeout=REQ_TIMEOUT, verify=False )
+            if r.status_code== requests.codes.ok:
+                
+                soup = bs4.BeautifulSoup(r.text) 
+                
+                d = soup.select('div.side-container div.bpm.side div.number'  )
+                ### probably get a more accurate parsing ? 
+                #d = soup.select('div.listing.'  )
+                #d=soup.find("div", {"class": "side-container"})
+                
+                #log( repr( d ) )
+                if d:
+                    bpm=int(d[0].text)
+                else:
+                    log('    #cannot get bpm info')
+                
+        except Exception as e:
+            log("    #EXCEPTION:="+ repr( sys.exc_info() ) + "  " + str(e) )
+            bpm=0
             
         return bpm
 

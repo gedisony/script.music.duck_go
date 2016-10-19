@@ -70,6 +70,8 @@ if not os.path.exists(PROFILE_DIR):
 resources.lib.requests_cache.install_cache(CACHE_FILE, backend='sqlite', expire_after=604800 )  #cache expires after 7 days
 
 SEARCH_TEMPLATE=addon.getSetting("search_template")
+SEARCH_TEMPLATE2=addon.getSetting("search_template2")
+
 NO_AUDIO_SEARCH=addon.getSetting("search_no_music")
 
 
@@ -250,9 +252,6 @@ class Worker(threading.Thread):
             #artist_names = _json.loads(response).get( 'result', {} ).get( 'item', {} ).get( 'artist', [] )
             #mbids = _json.loads(response).get( 'result', {} ).get( 'item', {} ).get( 'musicbrainzartistid', [] )
             
-            if 'various' in song_artist.lower(): song_artist_search='song'
-            else:song_artist_search=song_artist
-            
             #song_file=xbmc.Player().getPlayingFile() #this returns something like 'musicdb://singles/499.mp3?singles=true' . not useful for getting song title
             #log('   Title:' + song_title ) 
             #log('  Artist:' + xbmc.Player().getMusicInfoTag().getArtist() )
@@ -270,36 +269,54 @@ class Worker(threading.Thread):
                                     } )
             else:
                 self.last_playing_song=song_title
-                search_string=SEARCH_TEMPLATE.format(title=song_title, artist=song_artist_search, album=song_album).strip()
-                self.search_thumbs_to_queue( search_string, song_title, song_artist, song_album  )
+                
+                self.search_thumbs_to_queue( song_title, song_artist, song_album  )
             
             #playing_file = xbmc.Player().getPlayingFile() + ' - ' + xbmc.Player().getMusicInfoTag().getArtist() + ' - ' + xbmc.Player().getMusicInfoTag().getTitle()
         else:
             log('    #audio is not playing ')    
             
             if (self.no_audio_counter % 100) == 0:
-                self.search_thumbs_to_queue( NO_AUDIO_SEARCH )
+                self.search_thumbs_to_queue( )
             
             self.no_audio_counter += 1  #entire purpose of this is to not do many search requests
             
     
-    def search_thumbs_to_queue(self, search_string, song_title='', song_artist='', song_album=''):   
+    
+    def search_thumbs_to_queue(self, song_title='', song_artist='', song_album=''):
+        search_string=''
+        if song_title:
+            #various artist changed to just 'song'
+            if 'various' in song_artist.lower(): 
+                song_artist_search='song'
+            else:
+                song_artist_search=song_artist
+                
+            bpm=self.get_bpm(song_title,song_artist )                            
+
+            search_string=SEARCH_TEMPLATE.format(title=song_title, artist=song_artist_search, album=song_album).strip()
+        else:
+            search_string=NO_AUDIO_SEARCH.strip() + ' ' + str( random.randint(0,100) )  #just to return a randomized result
+            bpm=0
+           
         try:
             thumbs=self.slide_info_generator.get_images( search_string )
-            if thumbs:
-                if song_title:
-                    bpm=self.get_bpm(song_title,song_artist )
-                else:
-                    bpm=0
-                #log( '    got %d thumbs' % len(thumbs) )
-                #thumbs.extend( self.slide_info_generator.get_images( search_string, '&start=10' )  )
-                self.q_out.put( { 'factlet_type' : "musicthumbs", 
-                                  "images"       : thumbs , 
-                                  'title'        : song_title ,
-                                  'artist'       : song_artist ,
-                                  'album'        : song_album ,
-                                  'bpm'          : bpm,
-                                 } )
+            if len(thumbs) < 40:
+                #search again using alternate search string
+                
+                search_string=SEARCH_TEMPLATE2.format(title=song_title, artist=song_artist_search, album=song_album).strip()
+                log('    #+ alternate search string:' + search_string)
+                thumbs.extend( self.slide_info_generator.get_images( search_string ) )
+                
+            #log( '    got %d thumbs' % len(thumbs) )
+            #thumbs.extend( self.slide_info_generator.get_images( search_string, '&start=10' )  )
+            self.q_out.put( { 'factlet_type' : "musicthumbs", 
+                              "images"       : thumbs , 
+                              'title'        : song_title ,
+                              'artist'       : song_artist ,
+                              'album'        : song_album ,
+                              'bpm'          : bpm,
+                             } )
         except:
             #read timeout
             self.last_playing_song=''

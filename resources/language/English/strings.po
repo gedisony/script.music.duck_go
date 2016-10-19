@@ -24,7 +24,7 @@ msgid "API Key"
 msgstr ""
 
 msgctxt "#32104"
-msgid "Search"
+msgid "Search template"
 msgstr ""
 
 msgctxt "#32105"
@@ -43,6 +43,9 @@ msgctxt "#32108"
 msgid "Search term for when no music is playing"
 msgstr ""
 
+msgctxt "#32109"
+msgid "Alternate search template"
+msgstr ""
 
 
 

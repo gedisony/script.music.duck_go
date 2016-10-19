@@ -50,6 +50,7 @@ class ctl_animator(threading.Thread):
     screen_h=720
     GROUP_ID=100
     grid_positions=[]
+    temp_list=[]  #temporary list for keeping track of control ids (swap)
     
     def __init__(self, window, image_control_ids ):
         threading.Thread.__init__(self)
@@ -83,11 +84,13 @@ class ctl_animator(threading.Thread):
             self.running = True
             while self.running:    #while not self.monitor.abortRequested():
                 
+                #log('  @control ids:' + repr(self.image_control_ids))    
                 msec_per_image=2000
                 
                 option, f=random.choice(self.animation_functions)
                 #option, f=self.animation_functions[6]
                 #option, f=self.animation_functions[10]  #bpm grid
+                #option, f=self.animation_functions[11]  #swap grid random
                 #f=self.test; option='once'
                 
                 log('  @animation: ' + repr( f ) ) 
@@ -107,7 +110,9 @@ class ctl_animator(threading.Thread):
                     f(self, control_id=0, delay=0, time=50000 )
                     #add a slow fade animation to all images after beats done 
                     self.apply_animation_to_all_controls( [animation_format( 0,    0, 'zoom',  70,70,      '',    '','auto','' ),     #maintain zoom size so that transition won't be abrupt
-                                                           animation_format( 0, 2000, 'fade', 100, 0, 'cubic', 'out' ),] )
+                                                           animation_format( 0, 2000, 'fade', 100, 0, 'cubic', 'out' ),],
+                                                           10
+                                                          )
 
                 else:
                     #fly images one at a time. 
@@ -148,28 +153,41 @@ class ctl_animator(threading.Thread):
     def test(self, style, control_id, delay, time):
         log('  running test animation method')
         #get some controls out of the way
-        img_ctl_b=self.window.getControl( 114 ); img_ctl_b.setVisible(False)
-        img_ctl_b=self.window.getControl( 120 ); img_ctl_b.setVisible(False)
-
-        control_id=102
-        self.slide_control_to_grid( control_id, 1, 0, 1000, [animation_format(    500, 1000,    'zoom',  100, 70,   'sine', 'in','auto','' ),],False)
-        #self.slide_control_to_grid( 114, 5, 0, 2000)
-        #img_ctl=self.window.getControl( control_id )
-        #
-
-        bpm=120
+#        img_ctl_b=self.window.getControl( 114 ); img_ctl_b.setVisible(False)
+#        img_ctl_b=self.window.getControl( 120 ); img_ctl_b.setVisible(False)
+#
+#        control_id=102
+#        self.slide_control_to_grid( control_id, 1, 0, 1000, [animation_format(    500, 1000,    'zoom',  100, 70,   'sine', 'in','auto','' ),],True)
+#        #self.slide_control_to_grid( 114, 5, 0, 2000)
+#        #img_ctl=self.window.getControl( control_id )
+#        #
+#
+#        bpm=120
+#        
+#        msec_bpm      = 60000/bpm
+#        half_msec_bpm = 30000/bpm
         
-        msec_bpm      = 60000/bpm
-        half_msec_bpm = 30000/bpm
+
+        self.arrange_all_controls_to_grid()
+        xbmc.sleep(2000)
         
-#        img_ctl.setAnimations( [    
-#                        animation_format(    2000, 1000,    'zoom',  100, 70,   'sine', 'in','auto','' ),
-#                       #animation_format(         1000, half_msec_bpm,    'zoom',   70, 100,   'sine', 'in','auto','' ),
-#                       #animation_format( 1000+half_msec_bpm, half_msec_bpm,    'zoom',  100,  70,   'sine',  'out','auto','' ),
-#                       ] ) 
+        self.swap_control_positions(1, 19 )
         
         self.running=False
         pass
+    
+    def swap_control_positions(self, grid_index_a, grid_index_b, delay=0, time=2000, tween='cubic', easing='inout'):
+        
+        ctl_id_a=self.temp_list[ grid_index_a ]
+        ctl_id_b=self.temp_list[ grid_index_b ]
+        
+        extra_animation=[animation_format(    0, 0,    'zoom',  70, 70,   'sine', 'in','auto','' ),]
+        self.slide_control_to_grid( ctl_id_a, grid_index_b, delay, time, extra_animation ,True, tween, easing)
+        self.slide_control_to_grid( ctl_id_b, grid_index_a, delay, time, extra_animation ,True, tween, easing)
+
+        #keep a note of which controls were swapped
+        self.temp_list[grid_index_a], self.temp_list[grid_index_b] = self.temp_list[grid_index_b], self.temp_list[grid_index_a]
+
 
     def rotate_animation(self, style, control_id, delay, time):
 
@@ -455,47 +473,89 @@ class ctl_animator(threading.Thread):
         
         self.group_ctl.setAnimations( random.choice( rotate_animations ) )
 
-    def arrange_all_controls_to_grid(self):
+    def arrange_all_controls_to_grid(self, time=2000):
+        #save the control ids in a temporary list. to be used later if swap animation is run (their index correspond to grid positions
+        #note:  self.temp_list=self.image_control_ids will not work. the lists are copied by pointers, modifying temp_list will also affect image_control_ids
+        #we need to actually copy self.image_control_ids into self.temp_list
+        #http://stackoverflow.com/questions/2612802/how-to-clone-or-copy-a-list
+        self.temp_list = list(self.image_control_ids)
+        
         for idx, id in enumerate(self.image_control_ids):
             extra_animation=[animation_format( 0, 0, 'zoom', 70,  70, '', '','auto','' ),]
-            self.slide_control_to_grid(id, idx, 0, 1000, extra_animation,True )
+            self.slide_control_to_grid(id, idx, 0, time, extra_animation,True )
 
 
-    def apply_animation_to_all_controls(self, animation=[] ):
-        for control_id in self.image_control_ids:
+    def apply_animation_to_all_controls(self, animation=[], sleep_msec_after_every_control=0 ):
+        
+        if bool(random.getrandbits(1)):
+            image_control_ids=self.image_control_ids
+        else:
+            image_control_ids=reversed(self.image_control_ids)
+        
+        for control_id in image_control_ids:
             img_ctl=self.window.getControl( control_id )
             img_ctl.setAnimations( animation )
+            if sleep_msec_after_every_control > 0:
+                xbmc.sleep(sleep_msec_after_every_control)  #having it sleep will make the animation delay a bit. just to make it more interesting. 
 
 
     
     beat_patterns=[
-                   [ [0,6],[5,6],[10,11],[15,11],[16,12],[17,12],[18,12],[19,13],[14,13],[9,8],[4,8],[3,7],[2,7],[1,7] ],
+                   [ [0,5,14,19],[1,6,13,18],[2,7,12,17],[3,8,11,16],[4,9,10,15] ],
+                   [ [0,6,12,18],[1,7,13,19],[2,8,14],[3,9],[4],[15],[10,16],[5,11,17] ],
+                   [ [0,2,4,6,8,10,12,14,16,18,],[1,3,5,7,9,11,13,15,17,19] ],
+                   [ [5,10,1,16,2,17,3,18,9,14],[6,11,7,12,8,13],[0,15,4,19],[6,11,7,12,8,13] ],
                    [ [0,5,10,15], [1,6,11,16], [2,7,12,17],[3,8,13,18],[4,9,14,19],[3,8,13,18], [2,7,12,17], [1,6,11,16] ],
                    [ [0,1,2,3,4],[10,11,12,13,14],[5,6,7,8,9],[15,16,17,18,19], ],  
                    [ [0],[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12],[13],[14],[15],[16],[17],[18],[19], ],
                    ]
     
     def bpm_grid_random(self, control_id, delay, time ):
-        self.arrange_all_controls_to_grid()
+        self.arrange_all_controls_to_grid(2000)
+        self.wait(2000) #wait for arrange_all_controls_to_grid animation to finish
         msec_bpm = self.get_bpm_msec()
         
         number_of_beats = int( time / msec_bpm )
         for i in range(number_of_beats):
             iid1=random.randint(0,19)
             iid2=random.randint(0,19)
-            iid= [iid1,iid2] 
-            self.beat( iid, msec_bpm )
+            iids= [iid1,iid2] 
+            self.beat( iids, msec_bpm )
+            xbmc.sleep( msec_bpm ) #make sure to sleep so that animation finishes
+
+
+    def swap_grid_random(self, control_id, delay, time ):
+        self.arrange_all_controls_to_grid(2000)
+        self.wait(2000) #wait for arrange_all_controls_to_grid animation to finish
+        msec_bpm = self.get_bpm_msec()
+        msec_bpm = (msec_bpm * 2)
+        
+        number_of_beats = int( time / msec_bpm )
+        for i in range(number_of_beats):
+            iid1=random.randint(0,19)
+            iid2=random.randint(0,19)
+            
+            self.swap_control_positions( iid1, iid2, delay=0, time=msec_bpm, tween='cubic', easing='inout')
+            xbmc.sleep( msec_bpm ) #make sure to sleep so that animation finishes
+            #iids= [iid1,iid2] 
+            #self.beat( iids, msec_bpm )
+
     
     def bpm_grid(self, control_id, delay, time ):
-        self.arrange_all_controls_to_grid()
+        self.arrange_all_controls_to_grid(2000)
+        self.wait(2000) #wait for arrange_all_controls_to_grid animation to finish
         msec_bpm = self.get_bpm_msec()
-        
+                
         pattern_cycle=cycle( random.choice(self.beat_patterns) )
+        #pattern_cycle=cycle( self.beat_patterns[0] )
+        
         animation_style=random.choice(['zoom','fade'])
         number_of_beats = int( time / msec_bpm )
         for i in range(number_of_beats):
             index_ids=pattern_cycle.next()
             self.beat( index_ids, msec_bpm, animation_style )
+            xbmc.sleep( msec_bpm )  #make sure to sleep so that animation finishes
+
 
     def beat(self, index_ids, msec_bpm, animation_style='zoom' ):
         #'beat'-animate the control indicated by the grid index id
@@ -522,9 +582,8 @@ class ctl_animator(threading.Thread):
                            ] )
             img_ctl.setAnimations( ANIMATION ) 
             
-        xbmc.sleep( msec_bpm )
 
-    def slide_control_to_grid(self,control_id,grid_position_index, delay=0, time=0, extra_animation=[], set_position=False  ):
+    def slide_control_to_grid(self,control_id,grid_position_index, delay=0, time=0, extra_animation=[], set_position=False, tween='', easing=''  ):
         #log('   slide control to grid position %d' %(grid_position_index))
         img_ctl=self.window.getControl( control_id )
         img_w=img_ctl.getWidth()
@@ -538,8 +597,12 @@ class ctl_animator(threading.Thread):
         
         x_pos, y_pos = self.grid_positions[grid_position_index]
 
-        #rnd_slide_tweens=random.choice(['sine','linear','quadratic','circle','cubic'])
-        rnd_slide_tweens=random.choice(['sine','quadratic'])
+        if not tween:
+            #tween=random.choice(['sine','linear','quadratic','circle','cubic'])
+            tween=random.choice(['sine','quadratic'])
+        
+        if not easing:
+            easing='out'
 
         #slide uses relative positioning. we compute the delta for the desired vs current location and animate to slide there.
         dx=x_pos - img_x
@@ -547,8 +610,11 @@ class ctl_animator(threading.Thread):
         
         start="{0},{1}".format(0,0)
         end="{0},{1}".format(dx,dy)
+        img_ctl.setVisible(False)
 
+        #need to move control to new position if you want further animations on it.
         if set_position:
+            
             img_ctl.setPosition(x_pos, y_pos)   #log( '  @set position %.3d,%.3d' %( x_pos, y_pos ) )
             #same concept here but we compute the delta based on where the image was originally from
             dx=img_x - x_pos
@@ -559,11 +625,11 @@ class ctl_animator(threading.Thread):
 
         #log( '  start:%s end:%s ' %( start, end ) )
         ANIMATION.extend( [
-                           animation_format(delay, time, 'slide', start, end, rnd_slide_tweens, 'out' ), 
+                           animation_format(delay, time, 'slide', start, end, tween, easing ), 
                            ] )
         
         ANIMATION.extend( extra_animation )
-        
+        img_ctl.setVisible(True)
         img_ctl.setAnimations( ANIMATION )
                 
     def setPosition_5x4_grid(self, control_id, delay=0, time=0, extra_animation=[], set_position=False ):
@@ -624,6 +690,8 @@ class ctl_animator(threading.Thread):
     def translate_grid_index_to_control_id(self, grid_index):
         #this works because we arrange the image controls with grid id in define_grid_positions
         return self.image_control_ids[ grid_index ]
+        #return self.temp_list[ grid_index ]   #<-- temp_list re-created in self.arrange_all_controls_to_grid(). it will start same as self.image_control_ids
+        
 
     def get_bpm_msec(self, default=120):
         try: bpm=int( Window(10000).getProperty('bpm' ) )
@@ -653,17 +721,19 @@ class ctl_animator(threading.Thread):
         return ix, iy        
         
     animation_functions=[
-                         ('',rotating_tower),
-                         ('',cyclone),
-                         ('',drop_bounce),
-                         ('',udlr_slide),
-                         ('r',warp_in),
-                         ('',warp_out),
-                         ('',grid),      
-                         ('u',horizon),
-                         ('once',rotate_canvas),
-                         ('onceb',bpm_grid_random),
+                        ('',rotating_tower),
+                        ('',cyclone),
+                        ('',drop_bounce),
+                        ('',udlr_slide),
+                        ('r',warp_in),
+                        ('',warp_out),
+                        ('',grid),      
+                        ('u',horizon),
+                        ('once',rotate_canvas),
+                        ('onceb',bpm_grid_random),
                          ('onceb',bpm_grid), 
+                         ('onceb',swap_grid_random),
+                         
                          ]
 
 
@@ -1311,6 +1381,9 @@ class bggslide(ScreensaverBase):
 
 def from_PIL( image_url ):
     from PIL import Image
+    #Pillow does not support 'import _imaging'. please use 'from PIL.Image import core as _imaging' instead.    
+    #from PIL.Image import core as _imaging
+    
     from StringIO import StringIO
     r = requests.get( factlet.get('image') )
     pil_img=Image.open(StringIO(r.content))

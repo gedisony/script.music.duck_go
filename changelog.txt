@@ -1,3 +1,8 @@
+0.3.1 
+ - add alternate search option for when there's not enough images from first search
+ - ignore/skip ssl error when getting bpm
+ - add grid swap animation routine
+  
 0.3.0
  - start music duck go project
 

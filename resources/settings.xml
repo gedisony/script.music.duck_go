@@ -4,9 +4,11 @@
     	<setting id="clear_cache_button"  type="action"      label="32101"  default="" action="RunAddon(script.music.duck_go,mode=action&arg1=clear_cache)"/>
 		<setting id="label1"              type="lsep"        label="32105"  enabled="true"               />
     	<setting id="search_template"     type="text"        label="32104"  default="'{title}' related:'{artist}' music art images"                   />
+    	<setting id="search_template2"    type="text"        label="32109"  default="'{artist}' music art"                   />
+    	
     	<setting id="new_image_wait_sec"  type="number"      label="32106"  default="5"                   />
     	<setting id="show_title"          type="bool"        label="32107"  default="true"/>
-    	<setting id="search_no_music"     type="text"        label="32108"  default="landscape digital"/>
+    	<setting id="search_no_music"     type="text"        label="32108"  default="landscape"/>
     	
     	<!-- setting id="cx1"              type="text"        label="32102"  default=""                   />
     	<setting id="key1"             type="text"        label="32103"  default=""                   />
