@@ -610,7 +610,7 @@ class ctl_animator(threading.Thread):
         
         start="{0},{1}".format(0,0)
         end="{0},{1}".format(dx,dy)
-        img_ctl.setVisible(False)
+        img_ctl.setVisible(False)    #setting visible to false seems to remove an issue where the image briefly flashes before animation begins
 
         #need to move control to new position if you want further animations on it.
         if set_position:
@@ -731,8 +731,8 @@ class ctl_animator(threading.Thread):
                         ('u',horizon),
                         ('once',rotate_canvas),
                         ('onceb',bpm_grid_random),
-                         ('onceb',bpm_grid), 
-                         ('onceb',swap_grid_random),
+                        ('onceb',bpm_grid), 
+                        ('onceb',swap_grid_random),
                          
                          ]
 

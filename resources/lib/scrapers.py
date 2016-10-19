@@ -112,7 +112,7 @@ class duckduckgo_image(factsBase):
                                     'width': width,
                                     'height': height,
                                     }  )                    
-                return thumbs
+        return thumbs
 
 class songbpm_com():
     def get_bpm(self, song_title, artist):
