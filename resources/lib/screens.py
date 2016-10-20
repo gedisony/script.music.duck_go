@@ -26,7 +26,7 @@ import Queue
 import xbmc, xbmcaddon
 from xbmcgui import ControlImage, WindowXMLDialog, ControlTextBox, ControlLabel, ListItem, Window
 
-from screensaver import log
+from screensaver import log, cycle
 
 import pprint
 
@@ -749,10 +749,11 @@ class ScreensaverXMLWindow(WindowXMLDialog):
 class ScreensaverBase(object):
     #MODE = None
     #IMAGE_CONTROL_COUNT = 10
-    #FAST_IMAGE_COUNT = 0
-    #NEXT_SLIDE_TIME = 2000
+    FAST_IMAGE_COUNT = 0
+    NEXT_SLIDE_TIME = 2000
     BACKGROUND_IMAGE = 'srr_blackbg.jpg'
     image_control_ids=[101,102,103,104,105]   #control id's defined in ScreensaverXMLWindow xml file
+    WINDOW_XML_FILE = "slideshow02.xml"
     
     pause_requested=False
     info_requested=False
@@ -773,12 +774,10 @@ class ScreensaverBase(object):
         self.init_xbmc_window()
         self.init_global_controls()
         self.load_settings()
-        self.init_cycle_controls()
-        self.stack_cycle_controls()
         #self.log('__init__ end')
     
     def init_xbmc_window(self):
-        self.xbmc_window = ScreensaverXMLWindow( "slideshow02.xml", ADDON_PATH, defaultSkin='Default', exit_callback=self.action_id_handler )
+        self.xbmc_window = ScreensaverXMLWindow( self.WINDOW_XML_FILE, ADDON_PATH, defaultSkin='Default', exit_callback=self.action_id_handler )
         self.xbmc_window.setCoordinateResolution(5)
         self.xbmc_window.show()
 
@@ -796,37 +795,6 @@ class ScreensaverBase(object):
         #self.log('  init_global_controls end')
 
     def load_settings(self):
-        pass
-
-    def init_cycle_controls(self):
-        #self.log('  init_cycle_controls start')
-        #for i in xrange(self.IMAGE_CONTROL_COUNT):
-        #    img_control = ControlImage(0, 0, 0, 0, '', aspectRatio=2)  #(values 0 = stretch (default), 1 = scale up (crops), 2 = scale down (black bars)
-        #    txt_control = ControlTextBox(0, 0, 0, 0, font='font16')
-#                     xbfont_left = 0x00000000
-#                     xbfont_right = 0x00000001
-#                     xbfont_center_x = 0x00000002
-#                     xbfont_center_y = 0x00000004
-#                     xbfont_truncated = 0x00000008
-            #ControlLabel(x, y, width, height, label, font=None, textColor=None, disabledColor=None, alignment=0, hasPath=False, angle=0)
-            #txt_control = ControlLabel(0, 0, 0, 0, '', font='font30', textColor='', disabledColor='', alignment=6, hasPath=False, angle=0)
-            
-            #self.image_controls.append(img_control)
-        #    self.tni_controls.append([txt_control,img_control])
-        #self.log('  init_cycle_controls end')
-        pass
-        
-    def stack_cycle_controls(self):
-        #self.log('stack_cycle_controls start')
-        # add controls to the window in same order as image_controls list
-        # so any new image will be in front of all previous images
-        #self.xbmc_window.addControls(self.image_controls)
-        #self.xbmc_window.addControls(self.text_controls)
-
-        #self.xbmc_window.addControls(self.tni_controls[1])
-        #self.xbmc_window.addControls(self.tni_controls[0])
-        
-        #self.log('stack_cycle_controls end')
         pass
 
     def start_loop(self):
@@ -877,66 +845,6 @@ class ScreensaverBase(object):
         
         #return the screensaver back
         #xbmc.executeJSONRPC('{ "jsonrpc": "2.0", "id": 0, "method":"Settings.setSettingValue", "params": {"setting":"screensaver.mode", "value" : "%s"} }' % saver_mode )
-
-
-    def get_description_and_images(self, source):
-        #self.log('get_images2')
-        self.image_aspect_ratio = 16.0 / 9.0
-
-        images = []
-
-        if source == 'image_folder':
-            path = SlideshowCacheFolder  #addon.getSetting('image_path')
-            if path:
-                images = self._get_folder_images(path)
-        elif source == 'q':
-            #implement width & height extract here.
-            images=[[item[0], item[1],item[2], item[3], ] for item in self.facts_queue.queue]
-            #texts=[item[0] for item in q.queue]
-            #for i in images: self.log('   image: %s' %i)
-            #self.log('    %d images' % len(images))
-
-        return images
-
-
-    #for movie, audio or tv shows
-    def _get_json_images(self, method, key, prop):
-        self.log('_get_json_images start')
-        query = {
-            'jsonrpc': '2.0',
-            'id': 0,
-            'method': method,
-            'params': {
-                'properties': [prop],
-            }
-        }
-        response = json.loads(xbmc.executeJSONRPC(json.dumps(query)))
-        images = [
-            element[prop] for element
-            in response.get('result', {}).get(key, [])
-            if element.get(prop)
-        ]
-        self.log('_get_json_images end')
-        return images
-
-    def _get_folder_images(self, path):
-        self.log('_get_folder_images started with path: %s' % repr(path))
-        dirs, files = xbmcvfs.listdir(path)
-        images = [
-            xbmc.validatePath(path + f) for f in files
-            if f.lower()[-3:] in ('jpg', 'png')
-        ]
-        #if addon.getSetting('recursive') == 'true':
-        #    for directory in dirs:
-        #        if directory.startswith('.'):
-        #            continue
-        #        images.extend(
-        #            self._get_folder_images(
-        #                xbmc.validatePath('/'.join((path, directory, '')))
-        #            )
-        #        )
-        self.log('_get_folder_images ends')
-        return images
 
     def hide_loading_indicator(self):
         bg_img = xbmc.validatePath('/'.join(( ADDON_PATH, 'resources', 'skins', 'Default', 'media', self.BACKGROUND_IMAGE )))
@@ -1042,7 +950,7 @@ class ExitMonitor(xbmc.Monitor):
 
 class bggslide(ScreensaverBase):
     BACKGROUND_IMAGE = '' #'srr_blackbg.jpg'
-    SPEED = 0.7
+    SPEED = 1.0
 
     image_control_ids=[101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120]
     temp_list=[ {'src':'duckduckgo.png', 'width':'320','height':'180'} ]  #random error at start due to empty list
@@ -1051,6 +959,7 @@ class bggslide(ScreensaverBase):
     CTL_TITLE_TBOX2=203
     CTL_TITLE_TBOX3=204
     CTL_TITLE_DESC=202
+    WINDOW_XML_FILE = "slideshow04.xml"
     
     def load_settings(self):
         self.SPEED = 1.0
@@ -1061,23 +970,14 @@ class bggslide(ScreensaverBase):
         try: self.NEXT_IMAGE_TIME = float(addon.getSetting('new_image_wait_sec')) *1000
         except: self.NEXT_IMAGE_TIME = 5000   #default 5 seconds till new image is sent to animator thread
 
-    def init_xbmc_window(self):
-        self.xbmc_window = ScreensaverXMLWindow( "slideshow04.xml", ADDON_PATH, defaultSkin='Default', exit_callback=self.action_id_handler )
-        self.xbmc_window.setCoordinateResolution(5)
-        self.xbmc_window.show()
-    
-    def stack_cycle_controls(self):
-        pass
-
     def start_loop(self):
         #self.log('  start_loop')
-        
         self.music_images_cycle=cycle( self.temp_list )
         
         self.image_controls_cycle= cycle(self.image_control_ids)
         self.hide_loading_indicator()
 
-        #t = ffg_hangman(self.xbmc_window, self.title_control, factlet['name'] ) ; t.start()
+        #spawn the thread that animates the images
         self.animator_thread=ctl_animator( self.xbmc_window, self.image_control_ids )
         self.animator_thread.start()
         
@@ -1086,7 +986,7 @@ class bggslide(ScreensaverBase):
                 if self.facts_queue.empty():
                     #self.log('   queue empty '   )
                     self.cycle_image_into_control()
-                    self.wait( self.NEXT_IMAGE_TIME )  #taken from settings
+                    self.wait( self.NEXT_IMAGE_TIME )  #taken from settings (default 5 secs)
                     #self.wait(789)
                 else:
                     self.wait(2000)
@@ -1098,7 +998,7 @@ class bggslide(ScreensaverBase):
                     
                     factlet_type=factlet.get('factlet_type')
                     
-                    if factlet_type =='music_status:stop':  #no music playing
+                    if factlet_type =='music_status:stop':  
                         self.log( '  music_status:stop' )
                         #self.exit_requested=True
                         pass
@@ -1113,15 +1013,7 @@ class bggslide(ScreensaverBase):
                         self.show_title_slide(factlet)
                         
                     self.wait(480)  
-
-                #60,000 / bpm = ms
-
-                #self.show_title_slide(factlet)
-                #self.wait(8000)
                 
-            #if self.watchdog>=20:
-            #    self.exit_requested=True
-                    
             except Queue.Empty:
                 self.log('   queue empty thrown')
                 self.wait(5000)
@@ -1147,13 +1039,14 @@ class bggslide(ScreensaverBase):
             self.music_images_cycle=cycle( new_images )
         else:
             self.log('   no images to load')
-            
+        
+        #put bpm info for animator thread to use    
         current_bpm=factlet.get('bpm')
         Window(10000).setProperty('bpm',str(current_bpm) )
         #log('  wbpm:'+ repr( current_bpm ))
         
         #new song. put x the new images to controls to speed up transition
-        self.cycle_image_into_control(5)
+        self.cycle_image_into_control(8)
 
     def filter_images_by_ar(self, images_dict):
         #remove images that are too tall or too wide
@@ -1196,7 +1089,6 @@ class bggslide(ScreensaverBase):
     def cycle_image_into_control(self, images_to_cycle=1):
         #this method replaces process_music_slide()
         #  feeds one image at a time. called when queue is empty. this way, we will be able to react if new song is playing.
-        
         for x in range(1,images_to_cycle+1):
             img_dict =self.music_images_cycle.next()
             iid      =self.image_controls_cycle.next()
@@ -1431,16 +1323,6 @@ def fade_in_out_animation(start_delay, wait_time, fade_time=2000 ):
     
     return [fade_in_animation,fade_out_animation]
     
-    
-    
-def cycle(iterable):
-    saved = []
-    for element in iterable:
-        yield element
-        saved.append(element)
-    while saved:
-        for element in saved:
-            yield element
 
 if __name__ == '__main__':
     pass

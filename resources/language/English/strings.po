@@ -39,16 +39,26 @@ msgctxt "#32107"
 msgid "Show currently playing music title"
 msgstr ""
 
-msgctxt "#32108"
-msgid "Search term for when no music is playing"
-msgstr ""
-
 msgctxt "#32109"
 msgid "Alternate search template"
 msgstr ""
 
+msgctxt "#32110"
+msgid "When the above search returns less than 40 images. "
+msgstr ""
 
 
+msgctxt "#32200"
+msgid "No music"
+msgstr ""
+
+msgctxt "#32201"
+msgid "Will cycle through these search terms at interval"
+msgstr ""
+
+msgctxt "#32202"
+msgid "Search cycle interval (mins.)"
+msgstr ""
 
 
 

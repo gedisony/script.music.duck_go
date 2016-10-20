@@ -17,7 +17,6 @@
 #    along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-
 # this addon runs 3 threads. 
 # 1.) worker thread you see here handles searching for images on web and put list of images into a queue
 #     it uses scrapers in resources.lib.scrapers to do the search
@@ -28,6 +27,9 @@
 import random
 import os, sys
 import urlparse
+#import pprint
+
+from datetime import datetime, timedelta
 
 if sys.version_info >= (2, 7):
     import json
@@ -36,12 +38,11 @@ else:
 
 import xbmc
 import xbmcaddon
-import xbmcvfs
+#import xbmcvfs
 import re
 import urllib
 #import csv
-import resources.lib.requests_cache 
-
+#import resources.lib.requests_cache 
 
 import threading
 from Queue import Queue, Empty, Full
@@ -66,14 +67,34 @@ if not os.path.exists(PROFILE_DIR):
     os.makedirs(PROFILE_DIR)
     #resources.lib.requests_cache.install_cache( CACHE_FILE, backend='memory' )  #will create a cache in memory
     #log('using memory for requests_cache file')
-        
-resources.lib.requests_cache.install_cache(CACHE_FILE, backend='sqlite', expire_after=604800 )  #cache expires after 7 days
+ 
+#no need to install requests cache because searches have a unique id          
+#resources.lib.requests_cache.install_cache(CACHE_FILE, backend='sqlite', expire_after=604800 )  #cache expires after 7 days
 
 SEARCH_TEMPLATE=addon.getSetting("search_template")
 SEARCH_TEMPLATE2=addon.getSetting("search_template2")
 
-NO_AUDIO_SEARCH=addon.getSetting("search_no_music")
+try:
+    search_no_music_interval=int( addon.getSetting("search_no_music_interval") )
+except:
+    search_no_music_interval=10
 
+def cycle(iterable):
+    saved = []
+    for element in iterable:
+        yield element
+        saved.append(element)
+    while saved:
+        for element in saved:
+            yield element
+
+#load search templates for no audio
+na=[]
+for i in range(1,7) :
+    na.append( addon.getSetting("search_no_music%d" %i) )    
+
+na=filter(bool, na)     #remove empty strings
+NO_AUDIO_SEARCH=cycle(na)   #search templates for when no audio playing. addon will cycles through them (for variety)
 
 def start(arg1, arg2):
     from resources.lib.screens import bggslide
@@ -168,6 +189,7 @@ class ExitMonitor(xbmc.Monitor):
 class Worker(threading.Thread):
     last_playing_song=''
     no_audio_counter=0
+    last_no_audio_search=datetime(2016, 10, 20, 11, 29, 54)   
     def __init__(self, q_in, q_out, slide_info_generator):
         threading.Thread.__init__(self)
         self.q_out = q_out
@@ -222,12 +244,6 @@ class Worker(threading.Thread):
         
     def do_work(self):
         self.generate_slide_for_music()
-        
-        #if xbmc.Player().isPlayingAudio():
-        #else:
-        #    log( '  #no music playing')
-        #    factlet=self.slide_info_generator.generate_random_slide()
-        #    self.q_out.put( factlet ) #doesn't seem to throw exception when queue full.
 
     def get_bpm(self, song_title, artist):
         from resources.lib.scrapers import songbpm_com
@@ -247,7 +263,7 @@ class Worker(threading.Thread):
             total_time=xbmc.Player().getTotalTime()
             play_time=xbmc.Player().getTime()
             
-            song_title=remove_parens(song_title)
+            song_title=remove_parens(song_title)  #some song with parenthesis gives very few results
             #response = xbmc.executeJSONRPC ( '{"jsonrpc":"2.0", "method":"Player.GetItem", "params":{"playerid":0, "properties":["artist", "musicbrainzartistid"]},"id":1}' )
             #artist_names = _json.loads(response).get( 'result', {} ).get( 'item', {} ).get( 'artist', [] )
             #mbids = _json.loads(response).get( 'result', {} ).get( 'item', {} ).get( 'musicbrainzartistid', [] )
@@ -256,8 +272,7 @@ class Worker(threading.Thread):
             #log('   Title:' + song_title ) 
             #log('  Artist:' + xbmc.Player().getMusicInfoTag().getArtist() )
             #log('    File:' + repr( xbmc.Player().getPlayingFile()  ) ) 
-            
-            #log(' time: %d %d' %(total_time, play_time))
+            #log('    time: %d %d' %(total_time, play_time))
             if self.last_playing_song==song_title:
                 #log('    #playing the same song:' + self.last_playing_song) 
                 if  abs( (total_time/2) - play_time ) < 5 : #we need to have the worker cycle faster or give tolerance for where the halfway point is 
@@ -269,18 +284,16 @@ class Worker(threading.Thread):
                                     } )
             else:
                 self.last_playing_song=song_title
-                
                 self.search_thumbs_to_queue( song_title, song_artist, song_album  )
-            
-            #playing_file = xbmc.Player().getPlayingFile() + ' - ' + xbmc.Player().getMusicInfoTag().getArtist() + ' - ' + xbmc.Player().getMusicInfoTag().getTitle()
+                
         else:
-            log('    #audio is not playing ')    
-            
-            if (self.no_audio_counter % 100) == 0:
+            #log('    #audio is not playing ')    
+            between_last_search_mins = (datetime.now() - self.last_no_audio_search).total_seconds() / 60
+            #log('   #time delta ' + repr( between_last_search_mins ) + "cycle interval="  + repr(search_no_music_interval ))
+            if between_last_search_mins > search_no_music_interval:
+                log('    #doing no-audio search')
                 self.search_thumbs_to_queue( )
-            
-            self.no_audio_counter += 1  #entire purpose of this is to not do many search requests
-            
+                self.last_no_audio_search=datetime.now()
     
     
     def search_thumbs_to_queue(self, song_title='', song_artist='', song_album=''):
@@ -299,7 +312,8 @@ class Worker(threading.Thread):
         else:
             #NO_AUDIO_SEARCH should not be too specific as to return less than 40 images. otherwise SEARCH_TEMPLATE2 will be tried.
             #search_string=NO_AUDIO_SEARCH.strip() + ' ' + str( random.randint(0,100) )  #just to return a randomized result
-            search_string=NO_AUDIO_SEARCH.format(random100=random.randint(0,100)).strip()
+            search_string=NO_AUDIO_SEARCH.next()
+            search_string=search_string.format(random100=random.randint(0,100)).strip()
             bpm=0
            
         try:
@@ -362,12 +376,12 @@ if __name__ == '__main__':
     arg1    = params.get('arg1', '')
     arg2    = params.get('arg2', '') 
     
-    log("----------------------")
-    log("params="+ str(params))
-    log("mode="+ mode)
-    log("arg1="+ arg1) 
-    log("arg2="+ arg2)
-    log("-----------------------")
+#    log("----------------------")
+#    log("params="+ str(params))
+#    log("mode="+ mode)
+#    log("arg1="+ arg1) 
+#    log("arg2="+ arg2)
+#    log("-----------------------")
     
     if mode=='':mode='start'  #default mode is to list start page (index)
 

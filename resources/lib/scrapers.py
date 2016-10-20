@@ -55,13 +55,9 @@ class factsBase(object):
 
 class duckduckgo_image(factsBase):
     
-    
     def get_images(self, search_term, addtl_query_options='' ):
-
-        #thumbs=[]
-
-        #search_term='perfect combination'
-        query='{0}'.format(requests.utils.quote(   search_term  ) )
+        thumbs=[]
+        query='{0}'.format(requests.utils.quote(  search_term  ) )
         
         url='https://api.duckduckgo.com/?q={0}&ia=images&iax=1'.format(query )  
         log( '  ' + url )      
@@ -80,12 +76,12 @@ class duckduckgo_image(factsBase):
             #log( repr(match[0]) )
             vqd=match[0]
             
-        #call the ajax function that returns the actual images    
-        #url='https://api.duckduckgo.com/i.js?q={0}&l=wt-wt&cb=ddg_spice_images&vqd={1}'.format(query,vqd )  #<--the json is inside a ddg_spice_images( {...} )
-        thumbs=self.call_the_ajax_query( query, vqd, addtl_query_options )
-        
-        #to get 100 images:
-        #thumbs.extend( self.call_the_ajax_query( query, vqd, '&s=50' ) )
+            #call the ajax function that returns the actual images    
+            #url='https://api.duckduckgo.com/i.js?q={0}&l=wt-wt&cb=ddg_spice_images&vqd={1}'.format(query,vqd )  #<--the json is inside a ddg_spice_images( {...} )
+            thumbs=self.call_the_ajax_query( query, vqd, addtl_query_options )
+            
+            #to get 100 images:
+            #thumbs.extend( self.call_the_ajax_query( query, vqd, '&s=50' ) )
         
         return thumbs
 
@@ -119,6 +115,7 @@ class duckduckgo_image(factsBase):
 
                     thumbs.append( {'title': result.get("title" ),
                                     'src': thumb,
+                                    #'src': result.get("image"),
                                     'width': width,
                                     'height': height,
                                     }  )                    
@@ -173,7 +170,7 @@ class google_image(factsBase):
             self.keys.append(key)
 
         self.keys.reverse()
-        log( pprint.pformat(self.keys) )
+        #log( pprint.pformat(self.keys) )
         #self.cx='014375826027693914980%3Ahnuemd0yq-e'  
         #self.key='AIzaSyDxA4JzUwD_nNiKtczVT52Jp9PtqUjm5Vg'
         
