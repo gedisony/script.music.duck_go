@@ -58,7 +58,7 @@ class duckduckgo_image(factsBase):
     
     def get_images(self, search_term, addtl_query_options='' ):
 
-        thumbs=[]
+        #thumbs=[]
 
         #search_term='perfect combination'
         query='{0}'.format(requests.utils.quote(   search_term  ) )
@@ -82,7 +82,17 @@ class duckduckgo_image(factsBase):
             
         #call the ajax function that returns the actual images    
         #url='https://api.duckduckgo.com/i.js?q={0}&l=wt-wt&cb=ddg_spice_images&vqd={1}'.format(query,vqd )  #<--the json is inside a ddg_spice_images( {...} )
-        url='https://api.duckduckgo.com/i.js?l=wt-wt&o=json&q={0}&vqd={1}&f='.format(query,vqd )             #<--direct json no cleanup
+        thumbs=self.call_the_ajax_query( query, vqd, addtl_query_options )
+        
+        #to get 100 images:
+        #thumbs.extend( self.call_the_ajax_query( query, vqd, '&s=50' ) )
+        
+        return thumbs
+
+    def call_the_ajax_query(self, query, vqd, addtl_query_options=''):
+        thumbs=[]
+        
+        url='https://api.duckduckgo.com/i.js?l=wt-wt&o=json&q={0}{2}&vqd={1}'.format(query,vqd,addtl_query_options )             #<--direct json no cleanup
         log( '  ' + url )
          
         page = requests.get(url , timeout=REQ_TIMEOUT)
@@ -94,13 +104,13 @@ class duckduckgo_image(factsBase):
             results=j.get('results')
             if results:
                 for result in results:
-                    #log( repr( result.get("source")))
-                    #log( repr( result.get("thumbnail")))
-                    #log( repr( result.get("url" )))
-                    #log( repr( result.get("title" )))
-                    #log( repr( result.get("height")))
-                    #log( repr( result.get("width" )))
-                    #log( repr( result.get("image"))) 
+#                    log( repr( result.get("source")))
+#                    log( repr( result.get("thumbnail")))
+#                    log( repr( result.get("url" )))
+#                    log( repr( result.get("title" )))
+#                    log( repr( result.get("height")))
+#                    log( repr( result.get("width" )))
+#                    log( repr( result.get("image"))) 
 
                     thumb=result.get('thumbnail')
                     width=int(result.get('width'))
@@ -113,6 +123,7 @@ class duckduckgo_image(factsBase):
                                     'height': height,
                                     }  )                    
         return thumbs
+        
 
 class songbpm_com():
     def get_bpm(self, song_title, artist):

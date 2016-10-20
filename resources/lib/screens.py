@@ -1138,7 +1138,7 @@ class bggslide(ScreensaverBase):
 
     def load_new_images_to_cycle(self, factlet):
         
-        new_images=factlet.get('images')
+        new_images=self.filter_images_by_ar( factlet.get('images') )
         img_count=len(new_images)
         
         self.log('   loading %d new images into cycle' %img_count )
@@ -1154,6 +1154,26 @@ class bggslide(ScreensaverBase):
         
         #new song. put x the new images to controls to speed up transition
         self.cycle_image_into_control(5)
+
+    def filter_images_by_ar(self, images_dict):
+        #remove images that are too tall or too wide
+        for img_dict in images_dict:
+            try:
+                img_w=int(img_dict.get('width'))
+                img_h=int(img_dict.get('height'))
+                image=img_dict.get('src')
+                
+                ar=float(img_w)/img_h
+                if (ar>0) and (ar <0.4 or ar > 3):
+                    log('  bad ar %.3f rejecting image %s' %(ar, image ) )
+                    images_dict.remove( img_dict )
+                    
+            except Exception:
+                self.log( '  filter_images_by_ar:' + repr(sys.exc_info()) )                
+                #just accept the image (no width/height) value?
+                pass
+        
+        return  images_dict   
 
     def show_title_slide(self, factlet):
         #show and animate the currently playing music title

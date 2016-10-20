@@ -284,7 +284,8 @@ class Worker(threading.Thread):
     
     
     def search_thumbs_to_queue(self, song_title='', song_artist='', song_album=''):
-        search_string=''
+        
+        song_artist_search='art'
         if song_title:
             #various artist changed to just 'song'
             if 'various' in song_artist.lower(): 
@@ -296,11 +297,14 @@ class Worker(threading.Thread):
 
             search_string=SEARCH_TEMPLATE.format(title=song_title, artist=song_artist_search, album=song_album).strip()
         else:
-            search_string=NO_AUDIO_SEARCH.strip() + ' ' + str( random.randint(0,100) )  #just to return a randomized result
+            #NO_AUDIO_SEARCH should not be too specific as to return less than 40 images. otherwise SEARCH_TEMPLATE2 will be tried.
+            #search_string=NO_AUDIO_SEARCH.strip() + ' ' + str( random.randint(0,100) )  #just to return a randomized result
+            search_string=NO_AUDIO_SEARCH.format(random100=random.randint(0,100)).strip()
             bpm=0
            
         try:
             thumbs=self.slide_info_generator.get_images( search_string )
+            log('  #%d images' %len(thumbs) )
             if len(thumbs) < 40:
                 #search again using alternate search string
                 
