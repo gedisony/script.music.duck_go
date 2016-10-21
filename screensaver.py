@@ -292,11 +292,11 @@ class Worker(threading.Thread):
             #log('   #time delta ' + repr( between_last_search_mins ) + "cycle interval="  + repr(search_no_music_interval ))
             if between_last_search_mins > search_no_music_interval:
                 log('    #doing no-audio search')
-                self.search_thumbs_to_queue( )
+                self.search_thumbs_to_queue( pages=2 )
                 self.last_no_audio_search=datetime.now()
     
     
-    def search_thumbs_to_queue(self, song_title='', song_artist='', song_album=''):
+    def search_thumbs_to_queue(self, song_title='', song_artist='', song_album='', pages=1):
         
         song_artist_search='art'
         if song_title:
@@ -317,16 +317,15 @@ class Worker(threading.Thread):
             bpm=0
            
         try:
-            thumbs=self.slide_info_generator.get_images( search_string )
+            thumbs=self.slide_info_generator.get_images( search_string, pages )
             log('  #%d images' %len(thumbs) )
             if len(thumbs) < 40:
-                #search again using alternate search string
-                
+                #search again using alternate search string (this does not take into account wether music is playing or not
                 search_string=SEARCH_TEMPLATE2.format(title=song_title, artist=song_artist_search, album=song_album).strip()
                 log('    #+ alternate search string:' + search_string)
                 thumbs.extend( self.slide_info_generator.get_images( search_string ) )
                 
-            #log( '    got %d thumbs' % len(thumbs) )
+            thumbs = remove_dict_duplicates( thumbs, 'src')
             #thumbs.extend( self.slide_info_generator.get_images( search_string, '&start=10' )  )
             self.q_out.put( { 'factlet_type' : "musicthumbs", 
                               "images"       : thumbs , 
@@ -355,10 +354,13 @@ class Worker(threading.Thread):
             xbmc.sleep(chunk_wait_time)
 
 
+def remove_dict_duplicates(list_of_dict, key):
+    seen = set()
+    return [x for x in list_of_dict if [ x.get(key) not in seen, seen.add(  x.get(key) ) ] [0]]
+
 def remove_parens(string_with_parens):
     regex = re.compile(".*?\((.*?)\)")
     return re.sub(r'\([^)]*\)', '', string_with_parens)  #re.findall(regex, string_with_parens)[0]        
-
 
 def localize(id):
     return addon.getLocalizedString(id).encode('utf-8')

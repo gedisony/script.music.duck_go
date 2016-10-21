@@ -55,7 +55,8 @@ class factsBase(object):
 
 class duckduckgo_image(factsBase):
     
-    def get_images(self, search_term, addtl_query_options='' ):
+    def get_images(self, search_term, pages_to_load=1 ):
+        addtl_query_options=''
         thumbs=[]
         query='{0}'.format(requests.utils.quote(  search_term  ) )
         
@@ -78,10 +79,16 @@ class duckduckgo_image(factsBase):
             
             #call the ajax function that returns the actual images    
             #url='https://api.duckduckgo.com/i.js?q={0}&l=wt-wt&cb=ddg_spice_images&vqd={1}'.format(query,vqd )  #<--the json is inside a ddg_spice_images( {...} )
-            thumbs=self.call_the_ajax_query( query, vqd, addtl_query_options )
-            
-            #to get 100 images:
-            #thumbs.extend( self.call_the_ajax_query( query, vqd, '&s=50' ) )
+
+            thumbs=self.call_the_ajax_query( query, vqd, addtl_query_options )  #to get 100 images:  thumbs.extend( self.call_the_ajax_query( query, vqd, '&s=50' ) )
+            page_loaded=1
+            while page_loaded < pages_to_load:
+                s='&s={0}'.format( page_loaded*50 )   #first page returns 50 results, s=50 returns the next 50, s=100 the next 50...
+                addtl_query_options=s
+                xbmc.sleep(500)
+                #log('  #loading more pages:' + s )
+                thumbs.extend( self.call_the_ajax_query( query, vqd, addtl_query_options ) )
+                page_loaded+=1
         
         return thumbs
 
@@ -99,6 +106,7 @@ class duckduckgo_image(factsBase):
         if j:
             results=j.get('results')
             if results:
+                log( '    #%d results' %(len(results)))
                 for result in results:
 #                    log( repr( result.get("source")))
 #                    log( repr( result.get("thumbnail")))
@@ -114,8 +122,8 @@ class duckduckgo_image(factsBase):
                     #log( '  %dx%d %s' %(width, height, thumb)  )
 
                     thumbs.append( {'title': result.get("title" ),
-                                    'src': thumb,
-                                    #'src': result.get("image"),
+                                    #'src': thumb,
+                                    'src': result.get("image"),
                                     'width': width,
                                     'height': height,
                                     }  )                    
@@ -294,10 +302,7 @@ class google_image(factsBase):
             #xbmc.executebuiltin('XBMC.Notification("%s","%s")' %(  error.get('errors')[0].get('reason'), error.get('message') )  )
         
         return thumbs
-        
          
-        
-    
 def save_dict( dict_to_save, pickle_filename ):
     with open(pickle_filename, 'wb') as output:
         pickle.dump(dict_to_save, output)
