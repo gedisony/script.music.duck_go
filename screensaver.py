@@ -74,6 +74,9 @@ if not os.path.exists(PROFILE_DIR):
 SEARCH_TEMPLATE=addon.getSetting("search_template")
 SEARCH_TEMPLATE2=addon.getSetting("search_template2")
 
+FILTER_URL  =addon.getSetting("filter_url")
+FILTER_TITLE=addon.getSetting("filter_title")
+
 try:
     search_no_music_interval=int( addon.getSetting("search_no_music_interval") )
 except:
@@ -326,6 +329,8 @@ class Worker(threading.Thread):
                 thumbs.extend( self.slide_info_generator.get_images( search_string ) )
                 
             thumbs = remove_dict_duplicates( thumbs, 'src')
+            
+            thumbs = process_filter( thumbs )
             #thumbs.extend( self.slide_info_generator.get_images( search_string, '&start=10' )  )
             self.q_out.put( { 'factlet_type' : "musicthumbs", 
                               "images"       : thumbs , 
@@ -353,6 +358,31 @@ class Worker(threading.Thread):
             remaining_wait_time -= chunk_wait_time
             xbmc.sleep(chunk_wait_time)
 
+def process_filter( thumbs_dict ):
+    #log('  #filtering')
+    
+    a = [thumb for thumb in thumbs_dict if not excluded_by( FILTER_TITLE, thumb.get('title') )  ]
+    a = [thumb for thumb in           a if not excluded_by(   FILTER_URL, thumb.get('src') )  ]
+    
+    return a
+
+def excluded_by( filter, str_to_check):
+    #log( '      #exclude filter:' +str(filter))
+    #log( '      #exclude check:' +str_to_check)
+    if filter:
+        filter_list=filter.split(',')
+        #filter_list=[x.lower().strip() for x in filter_list]  #  list comprehensions
+        #log( '    exclude filter:' +str(filter_list))
+        
+        #if str_to_check.lower() in filter_list:
+        #    return True
+        
+        matches=[f for f in filter_list if f in str_to_check.lower()]
+        if matches:
+            log( '      #excluded_by match:' + repr(matches) + ' ' + repr(str_to_check))
+            return True
+        
+    return False
 
 def remove_dict_duplicates(list_of_dict, key):
     seen = set()

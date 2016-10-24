@@ -47,6 +47,23 @@ msgctxt "#32110"
 msgid "When the above search returns less than 40 images. "
 msgstr ""
 
+msgctxt "#32111"
+msgid "Skip images with these words in their URL(comma separate)"
+msgstr ""
+
+msgctxt "#32112"
+msgid "URL words filter"
+msgstr ""
+
+msgctxt "#32113"
+msgid "Skip images with these words in their title(comma separate)"
+msgstr ""
+
+msgctxt "#32114"
+msgid "Image title words filter"
+msgstr ""
+
+
 
 msgctxt "#32200"
 msgid "No music"
