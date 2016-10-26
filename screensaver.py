@@ -93,15 +93,15 @@ def cycle(iterable):
 
 #load search templates for no audio
 na=[]
-for i in range(1,7) :
+for i in range(1,10) :
     na.append( addon.getSetting("search_no_music%d" %i) )    
 
 na=filter(bool, na)     #remove empty strings
+random.shuffle(na)
 NO_AUDIO_SEARCH=cycle(na)   #search templates for when no audio playing. addon will cycles through them (for variety)
 
 def start(arg1, arg2):
     from resources.lib.screens import bggslide
-    #from resources.lib.scrapers import bulbgarden, boardgamegeek
 
     ev = threading.Event()
 
@@ -238,7 +238,7 @@ class Worker(threading.Thread):
                 log('    #worker thread self-terminating ')
                 self.running=False
 
-        log('    #worker thread done')
+        log('#worker thread done')
 
     def join(self, timeout=None):
         self.running=False
@@ -323,7 +323,7 @@ class Worker(threading.Thread):
             thumbs=self.slide_info_generator.get_images( search_string, pages )
             log('  #%d images' %len(thumbs) )
             if len(thumbs) < 40:
-                #search again using alternate search string (this does not take into account wether music is playing or not
+                #search again using alternate search string (this does not take into account whether music is playing or not
                 search_string=SEARCH_TEMPLATE2.format(title=song_title, artist=song_artist_search, album=song_album).strip()
                 log('    #+ alternate search string:' + search_string)
                 thumbs.extend( self.slide_info_generator.get_images( search_string ) )
@@ -351,7 +351,7 @@ class Worker(threading.Thread):
         remaining_wait_time = sleep_msec   
         while remaining_wait_time > 0:
             if self.running == False:
-                log('wait aborted')
+                log('  #wait aborted')
                 return
             if remaining_wait_time < chunk_wait_time:
                 chunk_wait_time = remaining_wait_time
@@ -360,7 +360,6 @@ class Worker(threading.Thread):
 
 def process_filter( thumbs_dict ):
     #log('  #filtering')
-    
     a = [thumb for thumb in thumbs_dict if not excluded_by( FILTER_TITLE, thumb.get('title') )  ]
     a = [thumb for thumb in           a if not excluded_by(   FILTER_URL, thumb.get('src') )  ]
     
@@ -371,11 +370,6 @@ def excluded_by( filter, str_to_check):
     #log( '      #exclude check:' +str_to_check)
     if filter:
         filter_list=filter.split(',')
-        #filter_list=[x.lower().strip() for x in filter_list]  #  list comprehensions
-        #log( '    exclude filter:' +str(filter_list))
-        
-        #if str_to_check.lower() in filter_list:
-        #    return True
         
         matches=[f for f in filter_list if f in str_to_check.lower()]
         if matches:
@@ -418,7 +412,6 @@ if __name__ == '__main__':
     if mode=='':mode='start'  #default mode is to list start page (index)
 
     script_modes = {'start'                 : start,
-                    #'build_index_file'      : build_index_file,
                     'action'                : action
                     }
 

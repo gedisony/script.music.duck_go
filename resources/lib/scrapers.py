@@ -20,10 +20,10 @@ import random
 import sys
 
 import requests
-import resources.lib.requests_cache 
+#import resources.lib.requests_cache 
 
 import bs4
-import pickle  
+#import pickle  
 import re
 
 import xbmc
@@ -55,10 +55,15 @@ class factsBase(object):
 
 class duckduckgo_image(factsBase):
     
+    def load_settings(self):
+        self.use_hq_image=addon.getSetting('use_hq_image') == "true"
+    
     def get_images(self, search_term, pages_to_load=1 ):
         addtl_query_options=''
         thumbs=[]
         query='{0}'.format(requests.utils.quote(  search_term  ) )
+        
+        #date_filter='df={}'.format( 'd')  # &df=m   #note you can also do date filter: m=past month w=past week d=past day...  but they don't seem to work
         
         url='https://api.duckduckgo.com/?q={0}&ia=images&iax=1'.format(query )  
         log( '  ' + url )      
@@ -116,15 +121,18 @@ class duckduckgo_image(factsBase):
 #                    log( repr( result.get("width" )))
 #                    log( repr( result.get("image"))) 
 
-                    thumb=result.get('thumbnail')
+                    if self.use_hq_image:
+                        src=result.get('image')
+                    else:
+                        src=result.get('thumbnail')
+                        
                     width=int(result.get('width'))
                     height=int(result.get('height'))
                     #log( '  %dx%d %s' %(width, height, thumb)  )
 
-                    thumbs.append( {'title': result.get("title" ),
-                                    #'src': thumb,
-                                    'src': result.get("image"),
-                                    'width': width,
+                    thumbs.append( {'title' : result.get("title" ),
+                                    'src'   : src,
+                                    'width' : width,
                                     'height': height,
                                     }  )                    
         return thumbs

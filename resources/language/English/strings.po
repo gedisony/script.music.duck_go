@@ -48,7 +48,7 @@ msgid "When the above search returns less than 40 images. "
 msgstr ""
 
 msgctxt "#32111"
-msgid "Skip images with these words in their URL(comma separate)"
+msgid "Skip images with these words in their URL(comma separated)"
 msgstr ""
 
 msgctxt "#32112"
@@ -56,11 +56,15 @@ msgid "URL words filter"
 msgstr ""
 
 msgctxt "#32113"
-msgid "Skip images with these words in their title(comma separate)"
+msgid "Skip images with these words in their title(comma separated)"
 msgstr ""
 
 msgctxt "#32114"
 msgid "Image title words filter"
+msgstr ""
+
+msgctxt "#32115"
+msgid "Use HQ image instead of thumbnail"
 msgstr ""
 
 
@@ -70,11 +74,11 @@ msgid "No music"
 msgstr ""
 
 msgctxt "#32201"
-msgid "Will cycle through these search terms at interval"
+msgid "Randomly cycle through these search terms at interval"
 msgstr ""
 
 msgctxt "#32202"
-msgid "Search cycle interval (mins.)"
+msgid "Search different terms at interval (mins.):"
 msgstr ""
 
 

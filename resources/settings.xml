@@ -4,8 +4,9 @@
     	<!-- setting id="clear_cache_button"  type="action"      label="32101"  default="" action="RunAddon(script.music.duck_go,mode=action&arg1=clear_cache)"/-->
 		<setting id="label1"              type="lsep"        label="32105"  enabled="true"               />
     	<setting id="search_template"     type="text"        label="32104"  default="'{title}' related:'{artist}' music art images"                   />
-    	<setting id="label1"              type="lsep"        label="32110"  enabled="true"               />
     	<setting id="search_template2"    type="text"        label="32109"  default="'{artist}' music"                   />
+    	<setting id="label1"              type="sep"                                                      />
+		<setting id="use_hq_image"        type="bool"        label="32115"  enabled="false"               />
     	
     	<setting id="new_image_wait_sec"  type="number"      label="32106"  default="5"                   />
     	<setting id="show_title"          type="bool"        label="32107"  default="true"/>
@@ -40,6 +41,9 @@
     	<setting id="search_no_music4"         type="text"        label="32104"  default=""/>
     	<setting id="search_no_music5"         type="text"        label="32104"  default=""/>
     	<setting id="search_no_music6"         type="text"        label="32104"  default=""/>
+    	<setting id="search_no_music7"         type="text"        label="32104"  default=""/>
+    	<setting id="search_no_music8"         type="text"        label="32104"  default=""/>
+    	<setting id="search_no_music9"         type="text"        label="32104"  default=""/>
     </category>
 
 </settings>

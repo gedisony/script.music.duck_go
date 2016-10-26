@@ -31,8 +31,6 @@ from screensaver import log, cycle
 import pprint
 
 import PIL
-import requests
-
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
@@ -48,15 +46,15 @@ ACTION_IDS_PAUSE = [12,68,79,229]   #ACTION_PAUSE = 12  ACTION_PLAY = 68  ACTION
 class ctl_animator(threading.Thread):
     screen_w=1280
     screen_h=720
-    GROUP_ID=100
+    GROUP_ID=100  #in the xml file. this is the groupcontrol where all images are on
     grid_positions=[]
-    temp_list=[]  #temporary list for keeping track of control ids (swap)
+    temp_list=[]  #temporary list for keeping track of control ids (for swap sequences)
 
     beat_patterns=[
+                   [ [4,15],[3,16],[2,17],[1,18],[0,19],[5,14],[9,10] ],
                    [ [0,5,14,19],[1,6,13,18],[2,7,12,17],[3,8,11,16],[4,9,10,15] ],
                    [ [0,6,12,18],[1,7,13,19],[2,8,14],[3,9],[4],[15],[10,16],[5,11,17] ],
                    [ [0,2,4,6,8,10,12,14,16,18,],[1,3,5,7,9,11,13,15,17,19] ],
-                   [ [5,10,1,16,2,17,3,18,9,14],[6,11,7,12,8,13],[0,15,4,19],[6,11,7,12,8,13] ],
                    [ [0,5,10,15], [1,6,11,16], [2,7,12,17],[3,8,13,18],[4,9,14,19],[3,8,13,18], [2,7,12,17], [1,6,11,16] ],
                    [ [0,1,2,3,4],[10,11,12,13,14],[5,6,7,8,9],[15,16,17,18,19], ],  
                    [ [0],[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12],[13],[14],[15],[16],[17],[18],[19], ],
@@ -65,11 +63,8 @@ class ctl_animator(threading.Thread):
     def __init__(self, window, image_control_ids ):
         threading.Thread.__init__(self)
         self.window=window
-        #self.control=text_control
-        #self.text=text
         self.controls_cycle=cycle(image_control_ids)
         self.image_control_ids=image_control_ids
-        #self.num_controls=len(image_control_ids)
         self.group_ctl=self.window.getControl( self.GROUP_ID )
         self.exit_monitor = ExitMonitor(self.stop)
         
@@ -89,7 +84,6 @@ class ctl_animator(threading.Thread):
 
     def run(self):
         log('@animator thread start ' + repr(self.image_control_ids))    
-        #xbmc.sleep(10000)
         try:
             self.running = True
             while self.running:    #while not self.monitor.abortRequested():
@@ -104,7 +98,7 @@ class ctl_animator(threading.Thread):
                 #option, f=self.animation_functions[12]  #grid_zoom_pan
                 #f=self.test; option='once'
                 
-                log('  @animation: ' + repr( f ) ) 
+                #log('  @animation: ' + repr( f ) ) 
                 
                 if option=='r': ctl_ids=reversed(self.image_control_ids)
                 else:           ctl_ids=self.image_control_ids
@@ -443,9 +437,8 @@ class ctl_animator(threading.Thread):
         self.warp('in',control_id, delay, time)
 
     def grid(self, control_id, delay, time ):
-        #iid = control_id - 100
         #self.setPosition_5x4_grid(control_id, delay, (time/3), extra_animation)
-        iid = ( control_id % 20 ) - 1  #our control id's start at 101 to 120. 
+        iid = ( control_id % 20 ) - 1  #our control id's start at 101 to 120. defined in xml
         if iid<0:iid=19 #<--grid_position_index
                 
         #manipulate the fade wait so that the last few images don't linger  
@@ -517,7 +510,6 @@ class ctl_animator(threading.Thread):
             self.slide_control_to_grid(id, idx, 0, time-(increasing_delay), extra_animation,True )
             self.wait(time_slice)  #<-- need to do the delay here instead of in animation so that previous animation of last control is not interrupted as fast
 
-
     def apply_animation_to_all_controls(self, animation=[], sleep_msec_after_every_control=0 ):
         
         if bool(random.getrandbits(1)):
@@ -533,7 +525,7 @@ class ctl_animator(threading.Thread):
 
     def bpm_grid_random(self, control_id, delay, time ):
         self.arrange_all_controls_to_grid(4000)
-        #self.wait(4000) #wait for arrange_all_controls_to_grid animation to finish
+        
         msec_bpm = self.get_bpm_msec()
         
         number_of_beats = int( time / msec_bpm )
@@ -546,14 +538,16 @@ class ctl_animator(threading.Thread):
 
     def swap_grid_random(self, control_id, delay, time ):
         self.arrange_all_controls_to_grid(4000)
-        #self.wait(4000) #wait for arrange_all_controls_to_grid animation to finish
+        
         msec_bpm = self.get_bpm_msec()
         msec_bpm = (msec_bpm * 2)
         
         number_of_beats = int( time / msec_bpm )
         for i in range(number_of_beats):
-            iid1=random.randint(0,19)
-            iid2=random.randint(0,19)
+            iid1=0; iid2=0
+            while iid1 == iid2: #make sure we didn't generate the same swap positions
+                iid1=random.randint(0,19)
+                iid2=random.randint(0,19)
             
             self.swap_control_positions( iid1, iid2, delay=0, time=msec_bpm, tween='cubic', easing='inout')
             xbmc.sleep( msec_bpm ) #make sure to sleep so that animation finishes
@@ -650,8 +644,7 @@ class ctl_animator(threading.Thread):
 #                                        animation_format( 16000, 4000, 'slide', '0,0',  '860,500',  'sine','inout',     '','' ),
 #                                        animation_format( 16000, 4000,  'zoom',   100,        33,   'sine','inout', '0,-10','' ),
 #                                       ] )
-        self.wait(time) #wait for the entire time alloted to this animation sequence (note the 
-        
+        self.wait(time) #wait for the entire time alloted to this animation sequence 
 
     def slide_control_to_grid(self,control_id,grid_position_index, delay=0, time=0, extra_animation=[], set_position=False, tween='', easing=''  ):
         #log('   slide control to grid position %d' %(grid_position_index))
@@ -837,8 +830,6 @@ class ScreensaverBase(object):
         self.background_control = None
         self.preload_control = None
         self.image_count = 0
-        #self.image_controls = []
-        #self.tni_controls = []
         self.global_controls = []
         self.exit_monitor = ExitMonitor(self.stop)
         self.facts_queue=facts_queue
@@ -979,7 +970,7 @@ class ScreensaverBase(object):
         self.exit_monitor = None
 
     def pause(self):
-        #pause disabled. too complicated(not possible?) to stop animation  
+        #pause feature disabled. too complicated(not possible?) to stop animation  
         #self.pause_requested = not self.pause_requested
         #self.log('pause %s' %self.pause_requested )
         pass
@@ -989,13 +980,6 @@ class ScreensaverBase(object):
         self.del_controls()
 
     def del_controls(self):
-        #self.log('del_controls start')
-        #self.xbmc_window.removeControls(self.img_controls)  
-        #try: self.xbmc_window.removeControls(self.tni_controls[0]) #imageControls
-        #except: pass
-        #try: self.xbmc_window.removeControls(self.tni_controls[1]) #textBoxes
-        #except: pass
-        
         self.xbmc_window.removeControls(self.global_controls)
         self.preload_control = None
         self.background_control = None
@@ -1025,7 +1009,7 @@ class bggslide(ScreensaverBase):
     SPEED = 1.0
 
     image_control_ids=[101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120]
-    temp_list=[ {'src':'duckduckgo.png', 'width':'320','height':'180'} ]  #random error at start due to empty list
+    temp_list=[ {'src':'duckduckgo.png', 'width':'320','height':'180'} ]  #avoid random error at start due to empty list
     CTL_TEXT_GROUP=200
     CTL_TITLE_TBOX=201
     CTL_TITLE_TBOX2=203
@@ -1123,23 +1107,26 @@ class bggslide(ScreensaverBase):
 
     def filter_images_by_ar(self, images_dict):
         #remove images that are too tall or too wide
-        for img_dict in images_dict:
-            try:
-                img_w=int(img_dict.get('width'))
-                img_h=int(img_dict.get('height'))
-                image=img_dict.get('src')
-                
-                ar=float(img_w)/img_h
-                if (ar>0) and (ar <0.4 or ar > 3):
-                    self.log('  bad ar %.3f rejecting image %s' %(ar, image ) )
-                    images_dict.remove( img_dict )
-                    
-            except Exception:
-                self.log( '  filter_images_by_ar:' + repr(sys.exc_info()) )                
-                #just accept the image (no width/height) value?
-                pass
+        images_dict2 = [ img_dict for img_dict in images_dict if self.ar_is_acceptable(img_dict) ]
         
-        return  images_dict   
+        return  images_dict2   
+
+    def ar_is_acceptable( self, img_dict ):
+        try:
+            img_w=int(img_dict.get('width'))
+            img_h=int(img_dict.get('height'))
+            image=img_dict.get('src')
+            
+            ar=float(img_w)/img_h
+            if (ar>0) and (ar <0.4 or ar > 3):
+                self.log('  bad ar %.3f rejecting image %s' %(ar, image ) )
+                return False
+                
+        except Exception:
+            self.log( '  filter_images_by_ar:' + repr(sys.exc_info()) )                
+            #just accept the image (no width/height) value?
+            
+        return True
 
     def show_title_slide(self, factlet):
         #show and animate the currently playing music title
