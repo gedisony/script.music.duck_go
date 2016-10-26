@@ -1093,6 +1093,7 @@ class bggslide(ScreensaverBase):
     
             if img_count > 0:
                 new_images=self.filter_images_by_ar( factlet.get('images') )
+                random.shuffle( new_images )
                 self.music_images_cycle=cycle( new_images )
         else:
             self.log('   no images to load')

@@ -317,6 +317,9 @@ class Worker(threading.Thread):
             #search_string=NO_AUDIO_SEARCH.strip() + ' ' + str( random.randint(0,100) )  #just to return a randomized result
             search_string=NO_AUDIO_SEARCH.next()
             search_string=search_string.format(random100=random.randint(0,100)).strip()
+            
+            search_string, pages = process_extra_parameters_in(search_string)
+            
             bpm=0
            
         try:
@@ -357,6 +360,34 @@ class Worker(threading.Thread):
                 chunk_wait_time = remaining_wait_time
             remaining_wait_time -= chunk_wait_time
             xbmc.sleep(chunk_wait_time)
+
+def process_extra_parameters_in(search_template):
+    pages=1
+    a=re.compile(r"(\[[^\]]*\])") #this regex only catches the [] 
+
+    try:
+        #get the [additional option]
+        opts= a.findall(search_template)
+        if opts:
+            params=opts[0].replace('[','').replace(']','')
+            
+            paramsd=dict( urlparse.parse_qsl(params) )
+            pages=int( paramsd.get('pages') )
+            
+            #log( '  search_template:' + search_template )
+            #remove the [xxx]'s
+            search_template = a.sub("",search_template).strip()
+            
+            #log( "      match:" + repr(paramsd) + ' cleaned:' + search_template + ' pages:' + str(pages) )
+            log( "      #extra parameter in search template [%s] pages:%s" %( search_template, str(pages)) )
+        else:
+            log('no extra parameters in search template found')
+            pass
+    except:
+        pass
+    
+    return search_template, pages
+        
 
 def process_filter( thumbs_dict ):
     #log('  #filtering')
