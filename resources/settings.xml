@@ -12,10 +12,10 @@
     	<setting id="show_title"          type="bool"        label="32107"  default="true"/>
 
     	<setting id="label1"              type="lsep"        label="32111"  enabled="true"               />
-    	<setting id="filter_url"          type="text"        label="32112"  default="musicnotes,sheetmusic,musicaneo.com"                   />
+    	<setting id="filter_url"          type="text"        label="32112"  default="musicnotes,musicaneo.com,sheetmusic,mysongbook"     />
 
     	<setting id="label1"              type="lsep"        label="32113"  enabled="true"               />
-    	<setting id="filter_title"        type="text"        label="32114"  default="chords,sheet music,notation"                   />
+    	<setting id="filter_title"        type="text"        label="32114"  default="chords,sheet music,notation,midi"                   />
     	
     	<!-- setting id="cx1"              type="text"        label="32102"  default=""                   />
     	<setting id="key1"             type="text"        label="32103"  default=""                   />
