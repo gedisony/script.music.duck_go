@@ -43,6 +43,33 @@ CHUNK_WAIT_TIME = 250
 ACTION_IDS_EXIT = [9, 10, 13, 92]
 ACTION_IDS_PAUSE = [12,68,79,229]   #ACTION_PAUSE = 12  ACTION_PLAY = 68  ACTION_PLAYER_PLAY = 79   ACTION_PLAYER_PLAYPAUSE = 229
 
+class LockedSet(set):
+    """ http://stackoverflow.com/questions/13610654/how-to-make-built-in-containers-sets-dicts-lists-thread-safe """
+
+    def __init__(self, *args, **kwargs):
+        self._lock = threading.RLock()
+        super(LockedSet, self).__init__(*args, **kwargs)
+
+    def add(self, elem):
+        with self._lock:
+            super(LockedSet, self).add(elem)
+
+    def remove(self, elem):
+        with self._lock:
+            super(LockedSet, self).remove(elem)
+
+    def discard(self, elem):
+        with self._lock:
+            super(LockedSet, self).discard(elem)
+    
+    def clear(self):
+        with self._lock:
+            super(LockedSet, self).clear()
+
+#def set_remove( visible_controls_set, elem ):
+#    log('    func removing {}'.format(elem))
+#    visible_controls_set.remove(elem)
+
 class ctl_animator(threading.Thread):
     screen_w=1280
     screen_h=720
@@ -60,11 +87,12 @@ class ctl_animator(threading.Thread):
                    [ [0],[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12],[13],[14],[15],[16],[17],[18],[19], ],
                    ]
     
-    def __init__(self, window, image_control_ids ):
+    def __init__(self, window, image_control_ids, visible_controls_set ):
         threading.Thread.__init__(self)
         self.window=window
         self.controls_cycle=cycle(image_control_ids)
         self.image_control_ids=image_control_ids
+        self.visible_controls_set=visible_controls_set           # a list of control id's that are visible
         self.group_ctl=self.window.getControl( self.GROUP_ID )
         self.exit_monitor = ExitMonitor(self.stop)
         
@@ -93,7 +121,7 @@ class ctl_animator(threading.Thread):
                 
                 option, f=random.choice(self.animation_functions)
                 #option, f=self.animation_functions[13]
-                #option, f=self.animation_functions[7]  
+                #option, f=self.animation_functions[2]  
                 #option, f=self.animation_functions[11]  #swap grid random
                 #option, f=self.animation_functions[12]  #grid_zoom_pan
                 #f=self.test; option='once'
@@ -157,8 +185,8 @@ class ctl_animator(threading.Thread):
                                                10
                                               )
         
-    
-    
+        self.vis_ctl_remove_all()
+        
     def test(self, style, control_id, delay, time):
         log('  running test animation method')
         #get some controls out of the way
@@ -246,7 +274,9 @@ class ctl_animator(threading.Thread):
 
         ANIMATION.extend( fade_in_out_animation(0,time,2000) )
         
+        self.vis_ctl_add(control_id)
         img_ctl.setAnimations( ANIMATION )
+        self.vis_ctl_remove_after( time+2000 , control_id)
             
     def rotating_tower(self,control_id, delay, time ):
         self.rotate_animation('tower', control_id, delay, time )
@@ -261,18 +291,17 @@ class ctl_animator(threading.Thread):
         img_h=img_ctl.getHeight()
         half_img=int(img_w/2)
         
+        time=time*1.2
         ANIMATION=[]
         bounce_delay=delay+(time*0.36)
         bounce_rotate_delay=delay+(time*0.38)  #delay for rotate animation after bounce. 
         
         fade_delay=delay+(time*0.95)
         
-        #log('  %d rnd_delay:%d' %(time, rnd_delay) )
-        
         rand_x_pos=random.randint(0,(1280-img_w))
         rand_y_pos=0
 
-        img_ctl.setPosition(rand_x_pos, 0)
+        img_ctl.setPosition(rand_x_pos, -200)
 
         sx=0;ex=0
         sy=(-1*img_h) ;ey=(720-img_h)
@@ -282,32 +311,34 @@ class ctl_animator(threading.Thread):
         pos_or_neg=['','-']
         pn=random.choice(pos_or_neg)
 
-
         #log('  pos:%d,%d  %dx%d '   %(rand_x_pos,rand_y_pos, img_w,img_h ))
 
         start="{0},{1}".format(sx,sy)
         end="{0},{1}".format(ex,ey)
         
         #image hide animation either fade or flip as if falling backwards
-        image_hide_animation=random.choice( [ 
-                                       animation_format(bounce_delay, 2000,  'fade',   100,   0,'circle', 'in' ),
+        image_hide_animation=random.choice( [
+                                            #animation_format(bounce_delay, 2000,  'zoom',   100, 150,'cubic', 'in', 'auto' ), 
+                                            animation_format(bounce_delay, 2000,  'fade',   100,   0,'cubic', 'in'         ),
+                                       
                                        #animation_format(fade_delay, 2000,  'rotatex', 0,  120,'circle', 'in','%d,0' %img_h)
-                                       ])
+                                            ])
         #animation_format(out_delay, time, 'rotatex', 0, '%s90'%pn, 'circle', 'in', '%s,0'%(random.choice([360,720])) ), #center x needs to be in the
         
         ANIMATION.extend( [
-                           animation_format(       delay, time, 'slide', start, end,   'bounce', 'out' ),
+                           animation_format(    0,    0,  'zoom',   150,          150,       '',   '','auto' ),
+                           animation_format(delay, time, 'slide', start,          end, 'bounce', 'out'       ),
+                           animation_format(delay, time, 'slide', '0,0', '%s600,0'%pn,   'sine', 'in', '', '' ),
                            image_hide_animation,
-
-                           animation_format(delay, time, 'slide',  '0,0', '%s600,0'%pn, 'circle', 'in', '', '' ),
                            ] )
         
-
         pos_or_neg=['','-']
         pn=random.choice(pos_or_neg)
         deg_end='{0}{1}'.format(pn,random.choice([0,180]))
 
-        img_ctl.setAnimations( ANIMATION ) 
+        self.vis_ctl_add(control_id)
+        img_ctl.setAnimations( ANIMATION )
+        self.vis_ctl_remove_after(  (bounce_delay+2000) , control_id) 
 
     def udlr_slide(self, control_id, delay, time ):
         
@@ -362,7 +393,9 @@ class ctl_animator(threading.Thread):
         ANIMATION.extend( fade_in_out_animation(delay,time,1000) )
         #ANIMATION.extend( self.addtl_animations_while_sliding( rnd_delay, 1000,cx,cy ) )
 
-        img_ctl.setAnimations( ANIMATION ) 
+        self.vis_ctl_add(control_id)
+        img_ctl.setAnimations( ANIMATION )
+        self.vis_ctl_remove_after( time+1000 , control_id) 
         
         
     def warp(self,style,control_id, delay, time ):
@@ -423,7 +456,9 @@ class ctl_animator(threading.Thread):
                            edge_animation,
                            ] )
 
-        img_ctl.setAnimations( ANIMATION ) 
+        self.vis_ctl_add(control_id)
+        img_ctl.setAnimations( ANIMATION )
+        self.vis_ctl_remove_after( time+1000 , control_id) 
         
     def warp_out(self, control_id, delay, time ):    
         self.warp('out',control_id, delay, time)
@@ -471,7 +506,12 @@ class ctl_animator(threading.Thread):
                            animation_format( delay+(time*0.1), time,    'fade',  100,   0,   'linear', '','' ),
                            ] )
         
-        img_ctl.setAnimations( ANIMATION ) 
+        self.vis_ctl_add(control_id)
+        img_ctl.setAnimations( ANIMATION )
+        self.vis_ctl_remove_after( time, control_id)
+        
+        #add all controls into set
+        #self.visible_controls_set |= self.image_control_ids
 
     def rotate_canvas(self, control_id, delay, time ):
         pn=random.choice(['','-'])
@@ -602,7 +642,9 @@ class ctl_animator(threading.Thread):
                                    #animation_format(      a_time,    800, 'slide', '0,0','-500,0',   'sine','in'   ),   #slide away
                                    ] )
     
+            self.vis_ctl_add(control_id)
             img_ctl.setAnimations( ANIMATION )
+            self.vis_ctl_remove_after( (a_time*0.75)+800, control_id)
         
             self.wait(time_slice) 
 
@@ -636,6 +678,9 @@ class ctl_animator(threading.Thread):
         corners=[ (0,-10),(1280,-10),(0,730),(1280,730)  ]   #used to define the starting points for diagonal slide
         t_arrange_controls=6000
 
+        r=[0,1,2,3,4]
+        indexes=[]   #used to store indexes of the visible controls
+
         #divide the time allotted for this animation between zoom and slide
         time=time-t_arrange_controls
         time_slice=(time/4)
@@ -650,14 +695,18 @@ class ctl_animator(threading.Thread):
             #random corners
             c=random.randint(0,3)
             zx,zy=corners[c]
-            if c==0:   sx=-860;sy=-500
-            elif c==1: sx= 860;sy=-500
-            elif c==2: sx=-860;sy= 500
-            else:      sx= 860;sy= 500
+            if   c==0: sx=-860;sy=-500; indexes=[0,1,5,6,7,12,13,14,18,19]
+            elif c==1: sx= 860;sy=-500; indexes=[3,4,7,8,9,10,11,12,15,16]
+            elif c==2: sx=-860;sy= 500; indexes=[3,4,7,8,9,10,11,12,15,16]
+            else:      sx= 860;sy= 500; indexes=[0,1,5,6,7,12,13,14,18,19]
 
         else:
-            #random row zoom (start)            
-            zy = random.choice( [-10,230,490,730] )
+            #random row zoom (start)          
+            rr= random.randint(0,3)      
+            zy = [-10,230,490,730][rr]   #log('zy='+repr( zy ))
+            
+            indexes=[ x+(rr*5) for x in r ] #log(repr( indexes ))
+            
             #random direction
             direction=bool(random.getrandbits(1))
             if direction:
@@ -669,8 +718,13 @@ class ctl_animator(threading.Thread):
                 
         slide1='{},{}'.format(sx,sy)
         slide2='{},{}'.format(-sx,-sy)
-        
         center='{},{}'.format(zx,zy)
+
+        #this portion figures out which controls are visible (don't update with new image)
+        zoomed_in_controls=[ self.translate_grid_index_to_control_id(x) for x in indexes ] 
+        #log('zoomed_in_controls=' + repr( zoomed_in_controls ))
+        self.vis_ctl_add_each(zoomed_in_controls, (delay+t_zoom)*0.7 )
+        self.vis_ctl_remove_each(zoomed_in_controls, delay_zoom_out*1.3 )
 
         self.group_ctl.setAnimations( [ animation_format( delay,          t_zoom,  'zoom',   100,    303,  'sine', 'out',  center ),
                                         animation_format( delay+t_zoom  ,t_slide, 'slide', '0,0', slide1,  'sine','inout',     '' ), 
@@ -734,68 +788,15 @@ class ctl_animator(threading.Thread):
         
         ANIMATION.extend( extra_animation )
         img_ctl.setVisible(True)
+
+        self.vis_ctl_add(control_id)
         img_ctl.setAnimations( ANIMATION )
-                
-    def setPosition_5x4_grid(self, control_id, delay=0, time=0, extra_animation=[], set_position=False ):
-        #positions image in a 5x4 grid based on its control id. 
-        #
-
-        img_ctl=self.window.getControl( control_id )
-        img_w=img_ctl.getWidth()
-        img_h=img_ctl.getHeight()
-
-        x_units = int( self.screen_w /5 )
-        y_units = int( self.screen_h /4 )
-        
-        img_x, img_y = img_ctl.getPosition()
-
-        ANIMATION=[]
-        
-        iid = ( control_id % 20 ) - 1  #our control id's start at 101 to 120. 
-        if iid<0:iid=19
-        
-        #log('   control_id:{0} iid:{1}'.format(control_id,iid) )
-        
-        #grid 5 x 4
-        new_x = iid % 5
-        new_y = int( iid / 5 )   #rounds down
-        
-        x_pos= new_x * x_units #+135
-        y_pos= new_y * y_units #+96
-        
-        #x_pos,y_pos=self.center_position(img_ctl, x_pos, y_pos )
-        
-        #slide uses relative positioning. we compute the delta for the desired vs current location and animate to slide there.
-        dx=x_pos - img_x
-        dy=y_pos - img_y
-
-        #rnd_slide_tweens=random.choice(['sine','linear','quadratic','circle','cubic'])
-        rnd_slide_tweens=random.choice(['sine','quadratic'])
-
-        #log('  iid:%d  pos:%d,%d  -> %dx%d  wait:%d'   %(iid, img_x,img_y, x_pos,y_pos,fade_wait))
-
-        start="{0},{1}".format(img_x,img_y)
-        end="{0},{1}".format(dx,dy)
-
-        ANIMATION.extend( [
-                           animation_format(delay, time, 'slide', start, end, rnd_slide_tweens, 'out' ), 
-                           ] )
-        
-        ANIMATION.extend( extra_animation )
-#        ANIMATION.extend( self.addtl_animations_while_sliding( rnd_delay, 1000,cx,cy ) )
-        img_ctl.setAnimations( ANIMATION )        
-        
-
-        if set_position:
-            self.wait( delay + time )
-            img_ctl.setPosition(x_pos, y_pos)
-            log( '  @set position %.3d,%.3d %d' %( x_pos, y_pos, control_id ) )
+        self.vis_ctl_remove_after( time, control_id)
         
     def translate_grid_index_to_control_id(self, grid_index):
         #this works because we arrange the image controls with grid id in define_grid_positions
         #return self.image_control_ids[ grid_index ]
         return self.temp_list[ grid_index ]   #<-- temp_list re-created in self.arrange_all_controls_to_grid(). it will start same as self.image_control_ids
-        
 
     def get_bpm_msec(self, default=120):
         try: bpm=int( Window(10000).getProperty('bpm' ) )
@@ -823,7 +824,40 @@ class ctl_animator(threading.Thread):
         iy=cy - int(img_h/2)
         
         return ix, iy        
-        
+    #vis_ctl methods used to keep track of what controls are visible
+    def vis_ctl_add(self, control_id):
+        #log('  adding {}'.format(control_id))
+        self.visible_controls_set.add(control_id)
+    def vis_ctl_add_after(self, time, control_id):
+        seconds=float(time/1000)
+        #log('  removing af{}-{}'.format(seconds, control_id))
+        threading.Timer(seconds, self.vis_ctl_add, [control_id] ).start()
+    def vis_ctl_add_each(self, control_id_list, time=0):
+        if time==0:
+            for control_id in control_id_list:
+                self.vis_ctl_add(control_id)
+        else:
+            for control_id in control_id_list:
+                self.vis_ctl_add_after(time, control_id)
+    def vis_ctl_remove_each(self, control_id_list, time=0):
+        if time==0:
+            for control_id in control_id_list:
+                self.vis_ctl_remove(control_id)
+        else:
+            for control_id in control_id_list:
+                self.vis_ctl_remove_after(time, control_id)
+    def vis_ctl_remove_after(self, time, control_id):
+        seconds=float(time/1000)
+        #log('  removing af{}-{}'.format(seconds, control_id))
+        threading.Timer(seconds, self.vis_ctl_remove, [control_id] ).start()
+    def vis_ctl_remove(self, control_id):
+        #log('  removing {}'.format(control_id))
+        #self.visible_controls_set.remove( control_id ) 
+        self.visible_controls_set.discard( control_id )
+    def vis_ctl_remove_all(self):
+        self.visible_controls_set.clear()
+        pass
+
     animation_functions=[
                         ('',rotating_tower),
                         ('',cyclone),
@@ -839,7 +873,6 @@ class ctl_animator(threading.Thread):
                         ('onceb',swap_grid_random),
                         ('onceb',grid_zoom_pan),
                         ('onceb',parade),
-                         
                          ]
 
 
@@ -1057,6 +1090,7 @@ class bggslide(ScreensaverBase):
     CTL_TITLE_TBOX3=204
     CTL_TITLE_DESC=202
     WINDOW_XML_FILE = "slideshow04.xml"
+    visible_controls_set=LockedSet()
     
     def load_settings(self):
         self.SPEED = 1.0
@@ -1075,13 +1109,14 @@ class bggslide(ScreensaverBase):
         self.hide_loading_indicator()
 
         #spawn the thread that animates the images
-        self.animator_thread=ctl_animator( self.xbmc_window, self.image_control_ids )
+        self.animator_thread=ctl_animator( self.xbmc_window, self.image_control_ids, self.visible_controls_set )
         self.animator_thread.start()
         
         while not self.exit_requested:
             try:
                 if self.facts_queue.empty():
                     #self.log('   queue empty '   )
+                    self.log( repr(self.visible_controls_set) )
                     self.cycle_image_into_control()
                     self.wait( self.NEXT_IMAGE_TIME )  #taken from settings (default 5 secs)
                     #self.wait(789)
@@ -1194,6 +1229,14 @@ class bggslide(ScreensaverBase):
         for x in range(1,images_to_cycle+1):
             img_dict =self.music_images_cycle.next()
             iid      =self.image_controls_cycle.next()
+            
+            #we try to change image when the control is not visible. kodi does not have a way for us to check if a control is visible.
+            #  the animator thread will maintain a list of control id's that are visible   
+            while iid in self.visible_controls_set:
+                #log(' bang! {} '.format(iid))
+                iid =self.image_controls_cycle.next()
+                self.wait(500)
+                
             img_ctl=self.xbmc_window.getControl( iid )
 
             #self.log('   cycling image(%d) into control %d' %(x,iid) )

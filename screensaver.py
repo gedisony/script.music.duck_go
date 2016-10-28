@@ -362,7 +362,7 @@ class Worker(threading.Thread):
             xbmc.sleep(chunk_wait_time)
 
 def process_extra_parameters_in(search_template):
-    pages=1
+    pages=2
     a=re.compile(r"(\[[^\]]*\])") #this regex only catches the [] 
 
     try:
