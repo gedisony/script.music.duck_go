@@ -42,7 +42,7 @@ import xbmcaddon
 import re
 import urllib
 #import csv
-#import resources.lib.requests_cache 
+import resources.lib.requests_cache 
 
 import threading
 from Queue import Queue, Empty, Full
@@ -69,7 +69,7 @@ if not os.path.exists(PROFILE_DIR):
     #log('using memory for requests_cache file')
  
 #no need to install requests cache because searches have a unique id          
-#resources.lib.requests_cache.install_cache(CACHE_FILE, backend='sqlite', expire_after=604800 )  #cache expires after 7 days
+resources.lib.requests_cache.install_cache(CACHE_FILE, backend='sqlite', expire_after=604800 )  #cache expires after 7 days
 
 SEARCH_TEMPLATE=addon.getSetting("search_template")
 SEARCH_TEMPLATE2=addon.getSetting("search_template2")
@@ -300,7 +300,7 @@ class Worker(threading.Thread):
     
     
     def search_thumbs_to_queue(self, song_title='', song_artist='', song_album='', pages=1):
-        
+        search_strings=[]  
         song_artist_search='art'
         if song_title:
             #various artist changed to just 'song'
@@ -323,13 +323,19 @@ class Worker(threading.Thread):
             bpm=0
            
         try:
-            thumbs=self.slide_info_generator.get_images( search_string, pages )
+            #search_strings.append(search_string)
+            if type(search_string) is list:
+                search_strings.extend(search_string)
+            else:
+                search_strings.append(search_string)
+            
+            thumbs=self.slide_info_generator.do_searches( search_strings, pages )
             log('  #%d images' %len(thumbs) )
             if len(thumbs) < 40:
                 #search again using alternate search string (this does not take into account whether music is playing or not
                 search_string=SEARCH_TEMPLATE2.format(title=song_title, artist=song_artist_search, album=song_album).strip()
                 log('    #+ alternate search string:' + search_string)
-                thumbs.extend( self.slide_info_generator.get_images( search_string ) )
+                thumbs.extend( self.slide_info_generator.do_search( search_string ) )
                 
             thumbs = remove_dict_duplicates( thumbs, 'src')
             
@@ -362,34 +368,51 @@ class Worker(threading.Thread):
             xbmc.sleep(chunk_wait_time)
 
 def process_extra_parameters_in(search_template):
+    '''
+    extra options enclosed in []
+        'pages='    number of pages to search. (50 results each) putting too hugh a value just returns the same results
+        'terms='    performs multiple searches for each comma separated item. adds the words outside the []'s 
+                    e.g.: [terms=diaspro,icy,stormy,darcy]winx
+                    searches for:  diaspro winx 
+                                   icy winx
+                                   stormy winx
+                                   darcy winx
+    '''
     pages=2
     a=re.compile(r"(\[[^\]]*\])") #this regex only catches the [] 
-
+    
     try:
         #get the [additional option]
         opts= a.findall(search_template)
         if opts:
             params=opts[0].replace('[','').replace(']','')
+            search=a.sub("",search_template).strip()
             
             paramsd=dict( urlparse.parse_qsl(params) )
-            pages=int( paramsd.get('pages') )
+            #log( repr( paramsd) )
+            try:   pages=int( paramsd.get('pages') ) 
+            except:pages=1
+            terms=paramsd.get('terms')    #search multiple terms and combine the results 
+            #log( 'terms' + repr( terms) )
             
-            #log( '  search_template:' + search_template )
-            #remove the [xxx]'s
-            search_template = a.sub("",search_template).strip()
+            if terms:
+                search_template=[ "{0} {1}".format(x, search) for x in terms.split(',')]
+            else:
+                search_template = search
             
             #log( "      match:" + repr(paramsd) + ' cleaned:' + search_template + ' pages:' + str(pages) )
-            log( "      #extra parameter in search template [%s] pages:%s" %( search_template, str(pages)) )
+            log( "      #extra parameter in search template (%s) pages:%s" %( search_template, str(pages)) )
         else:
             log('no extra parameters in search template found')
             pass
-    except:
-        pass
+    except Exception as e: 
+        log("  EXCEPTION process_extra_parameters_in:="+ str( sys.exc_info()[0]) + "  " + str(e) )    
     
     return search_template, pages
         
 
 def process_filter( thumbs_dict ):
+    #exclude images by words in their title and url 
     #log('  #filtering')
     a = [thumb for thumb in thumbs_dict if not excluded_by( FILTER_TITLE, thumb.get('title') )  ]
     a = [thumb for thumb in           a if not excluded_by(   FILTER_URL, thumb.get('src') )  ]

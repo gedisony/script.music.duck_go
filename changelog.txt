@@ -1,3 +1,7 @@
+0.3.6
+ - add combined multiple search option for no-audio search
+ - reinstate requests cache feature 
+
 0.3.5
  - keep track of controls that are visible
  - update controls when not visible 

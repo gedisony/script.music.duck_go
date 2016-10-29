@@ -81,7 +81,7 @@ class ctl_animator(threading.Thread):
                    [ [4,15],[3,16],[2,17],[1,18],[0,19],[5,14],[9,10] ],
                    [ [0,5,14,19],[1,6,13,18],[2,7,12,17],[3,8,11,16],[4,9,10,15] ],
                    [ [0,6,12,18],[1,7,13,19],[2,8,14],[3,9],[4],[15],[10,16],[5,11,17] ],
-                   [ [0,2,4,6,8,10,12,14,16,18,],[1,3,5,7,9,11,13,15,17,19] ],
+                   #[ [0,2,4,6,8,10,12,14,16,18,],[1,3,5,7,9,11,13,15,17,19] ],    #some systems not fast enough to make this many controls simultaneously execute animation 
                    [ [0,5,10,15], [1,6,11,16], [2,7,12,17],[3,8,13,18],[4,9,14,19],[3,8,13,18], [2,7,12,17], [1,6,11,16] ],
                    [ [0,1,2,3,4],[10,11,12,13,14],[5,6,7,8,9],[15,16,17,18,19], ],  
                    [ [0],[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12],[13],[14],[15],[16],[17],[18],[19], ],
@@ -1116,7 +1116,7 @@ class bggslide(ScreensaverBase):
             try:
                 if self.facts_queue.empty():
                     #self.log('   queue empty '   )
-                    self.log( repr(self.visible_controls_set) )
+                    #self.log( repr(self.visible_controls_set) )
                     self.cycle_image_into_control()
                     self.wait( self.NEXT_IMAGE_TIME )  #taken from settings (default 5 secs)
                     #self.wait(789)

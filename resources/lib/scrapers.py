@@ -58,7 +58,15 @@ class duckduckgo_image(factsBase):
     def load_settings(self):
         self.use_hq_image=addon.getSetting('use_hq_image') == "true"
     
-    def get_images(self, search_term, pages_to_load=1 ):
+    def do_searches(self, search_terms, pages_per_search=1 ):
+        thumbs=[]
+        for search_term in search_terms:
+            thumbs.extend( self.do_search(search_term, pages_per_search) )
+            xbmc.sleep(1000)  
+            
+        return thumbs
+    
+    def do_search(self, search_term, pages_to_load=1 ):
         addtl_query_options=''
         thumbs=[]
         query='{0}'.format(requests.utils.quote(  search_term  ) )
@@ -66,9 +74,11 @@ class duckduckgo_image(factsBase):
         #date_filter='df={}'.format( 'd')  # &df=m   #note you can also do date filter: m=past month w=past week d=past day...  but they don't seem to work
         
         url='https://api.duckduckgo.com/?q={0}&ia=images&iax=1'.format(query )  
-        log( '  ' + url )      
+        #log( '  ' + url )      
         
         page = requests.get(url , timeout=REQ_TIMEOUT)
+        try:   log( '  #cached:{0} {1}'.format( repr(page.from_cache),url) )
+        except:log( '  #cached:X {1}'.format( url) )  #if requests_cache is not installed, page will not have from_cache attribute
         #log( repr( page.text ))
         
 #        soup = bs4.BeautifulSoup(page.text)
@@ -111,7 +121,8 @@ class duckduckgo_image(factsBase):
         if j:
             results=j.get('results')
             if results:
-                log( '    #%d results' %(len(results)))
+                try:   log( '    #cached:{1} {0} results '.format( len(results), page.from_cache ))
+                except:log( '    #{0} results'.format( len(results) ))
                 for result in results:
 #                    log( repr( result.get("source")))
 #                    log( repr( result.get("thumbnail")))
