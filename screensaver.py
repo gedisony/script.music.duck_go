@@ -280,7 +280,7 @@ class Worker(threading.Thread):
                 #log('    #playing the same song:' + self.last_playing_song) 
                 if  abs( (total_time/2) - play_time ) < 5 : #we need to have the worker cycle faster or give tolerance for where the halfway point is 
                     log('  #song at halfway-point')
-                    self.q_out.put( { 'factlet_type' : "music_status:half", 
+                    self.q_out.put( { 'factlet_type' : "show_title", 
                                           'title'        : song_title ,
                                           'artist'       : song_artist ,
                                           'album'        : song_album ,

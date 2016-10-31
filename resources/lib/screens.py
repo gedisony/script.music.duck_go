@@ -644,7 +644,7 @@ class ctl_animator(threading.Thread):
     
             self.vis_ctl_add(control_id)
             img_ctl.setAnimations( ANIMATION )
-            self.vis_ctl_remove_after( (a_time*0.75)+800, control_id)
+            self.vis_ctl_remove_after( a_time+800, control_id)
         
             self.wait(time_slice) 
 
@@ -1135,7 +1135,7 @@ class bggslide(ScreensaverBase):
                         #self.exit_requested=True
                         pass
 
-                    elif factlet_type =='music_status:half':  #playing music is at halfway point
+                    elif factlet_type =='show_title':  #playing music is at halfway point
                         #self.log( '  show halfway point title' )
                         self.show_title_slide(factlet)
 
