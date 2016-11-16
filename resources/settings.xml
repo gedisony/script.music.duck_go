@@ -35,15 +35,19 @@
     <category label="32200">
     	<setting id="search_no_music_interval" type="number"      label="32202"  default="10"/>
     	<setting id="label1"                   type="lsep"        label="32201"  enabled="true"               />
-    	<setting id="search_no_music1"         type="text"        label="32104"  default="landscape"/>
-    	<setting id="search_no_music2"         type="text"        label="32104"  default=""/>
-    	<setting id="search_no_music3"         type="text"        label="32104"  default=""/>
-    	<setting id="search_no_music4"         type="text"        label="32104"  default=""/>
-    	<setting id="search_no_music5"         type="text"        label="32104"  default=""/>
-    	<setting id="search_no_music6"         type="text"        label="32104"  default=""/>
-    	<setting id="search_no_music7"         type="text"        label="32104"  default=""/>
+    	<setting id="search_no_music1"         type="text"        label="32104"  default="universe[pages=4]"/>
+    	<setting id="search_no_music2"         type="text"        label="32104"  default="[terms=turtles,jellyfish,lionfish]"/>
+    	<setting id="search_no_music3"         type="text"        label="32104"  default="[terms=cake,fruit] dessert"/>
+    	<setting id="search_no_music4"         type="text"        label="32104"  default="images site:boardgamegeek.com"/>
+    	<setting id="search_no_music5"         type="text"        label="32104"  default="portrait[terms=site:overwatch.gamepedia.com,site:https://playoverwatch.com]"/>
+    	<setting id="search_no_music6"         type="text"        label="32104"  default="png site:bulbapedia.bulbagarden.net[pages=3]"/>
+    	<setting id="search_no_music7"         type="text"        label="32104"  default="[terms=items,enemies] png site:skyrim.gamepedia.com"/>
     	<setting id="search_no_music8"         type="text"        label="32104"  default=""/>
     	<setting id="search_no_music9"         type="text"        label="32104"  default=""/>
     </category>
 
 </settings>
+
+
+enemies site:http://megaman.wikia.com
+

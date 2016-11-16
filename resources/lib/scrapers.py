@@ -73,8 +73,8 @@ class duckduckgo_image(factsBase):
         
         #date_filter='df={}'.format( 'd')  # &df=m   #note you can also do date filter: m=past month w=past week d=past day...  but they don't seem to work
         
-        url='https://api.duckduckgo.com/?q={0}&ia=images&iax=1'.format(query )  
-        #log( '  ' + url )      
+        url='http://api.duckduckgo.com/?q={0}&ia=images&iax=1'.format(query )  
+        log( '  ' + url )      
         
         page = requests.get(url , timeout=REQ_TIMEOUT)
         try:   log( '  #cached:{0} {1}'.format( repr(page.from_cache),url) )

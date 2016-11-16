@@ -109,11 +109,10 @@ def start(arg1, arg2):
 
     #testing code
     
-#    from resources.lib.scrapers import duckduckgo_image
-#    ddg=duckduckgo_image()
-#    ddg.get_images('aa')
-#
-#    return
+    #from resources.lib.scrapers import duckduckgo_image
+    #ddg=duckduckgo_image()
+    #ddg.do_search( 'aa' )
+    #return
 
 #    from resources.lib.scrapers import songbpm_com
 #    s=songbpm_com()
@@ -403,7 +402,7 @@ def process_extra_parameters_in(search_template):
             #log( "      match:" + repr(paramsd) + ' cleaned:' + search_template + ' pages:' + str(pages) )
             log( "      #extra parameter in search template (%s) pages:%s" %( search_template, str(pages)) )
         else:
-            log('no extra parameters in search template found')
+            #log('no extra parameters in search template')
             pass
     except Exception as e: 
         log("  EXCEPTION process_extra_parameters_in:="+ str( sys.exc_info()[0]) + "  " + str(e) )    

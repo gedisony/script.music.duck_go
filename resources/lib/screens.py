@@ -1184,15 +1184,20 @@ class bggslide(ScreensaverBase):
 
     def filter_images_by_ar(self, images_dict):
         #remove images that are too tall or too wide
-        images_dict2 = [ img_dict for img_dict in images_dict if self.ar_is_acceptable(img_dict) ]
+        images_dict2 = [ img_dict for img_dict in images_dict if self.is_acceptable(img_dict) ]
         
         return  images_dict2   
 
-    def ar_is_acceptable( self, img_dict ):
+    def is_acceptable( self, img_dict ):
         try:
             img_w=int(img_dict.get('width'))
             img_h=int(img_dict.get('height'))
             image=img_dict.get('src')
+            
+            if all(x <= 100 for x in (img_w,img_h)):
+                self.log('  image too small rejecting %s' %( image ) )
+                return False
+                
             
             ar=float(img_w)/img_h
             if (ar>0) and (ar <0.4 or ar > 3):
