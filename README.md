@@ -6,7 +6,8 @@ music duck go - Kodi Screensaver
   The main idea is to have many images flying on the screen to keep things interesting.<br>
   
 
-![Screenshot](http://i.imgur.com/l8ajpj1.png)
+![Screenshot](http://i.imgur.com/l8ajpj1.png)<br>
+[Imgur gallery](http://imgur.com/a/6OdSa)
 
 ## Features
  * Create custom query for your favorite show, character or game
