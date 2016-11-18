@@ -73,6 +73,9 @@ class duckduckgo_image(factsBase):
         
         #date_filter='df={}'.format( 'd')  # &df=m   #note you can also do date filter: m=past month w=past week d=past day...  but they don't seem to work
         
+        #t parameter: https://duck.co/help/privacy/t  not used 
+        #url='http://api.duckduckgo.com/?q={0}&ia=images&t=musicduckgo&iax=1'.format(query )
+        
         url='http://api.duckduckgo.com/?q={0}&ia=images&iax=1'.format(query )  
         log( '  ' + url )      
         
