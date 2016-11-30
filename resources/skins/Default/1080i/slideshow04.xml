@@ -21,102 +21,102 @@
 			<left>-32</left>
 			<top>-70</top>
 			<control type="image" id="101">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="102">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="103">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="104">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="105">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="106">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="107">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="108">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="109">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="110">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="111">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="112">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="113">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="114">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="115">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="116">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="117">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="118">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="119">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>
 			<control type="image" id="120">
-				<left>0</left>	<top>800</top>	<width>320</width>	<height>320</height>
+				<left>0</left>	<top>1000</top>	<width>320</width>	<height>320</height>
 				<aspectratio aligny="center">keep</aspectratio>
 				<texture diffuse="gdx_diffuse.png">test.png</texture>
 			</control>

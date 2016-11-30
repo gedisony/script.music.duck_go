@@ -1,3 +1,8 @@
+0.3.7
+ - reorganize settings screen
+ - ability to not use currently playing music search
+ - add corridor and wall animation
+
 0.3.6
  - add combined multiple search option for no-audio search
  - reinstate requests cache feature 

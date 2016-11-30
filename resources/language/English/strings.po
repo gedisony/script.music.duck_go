@@ -70,7 +70,7 @@ msgstr ""
 
 
 msgctxt "#32200"
-msgid "No music"
+msgid "Screensaver"
 msgstr ""
 
 msgctxt "#32201"
@@ -79,6 +79,15 @@ msgstr ""
 
 msgctxt "#32202"
 msgid "Search different terms at interval (mins.):"
+msgstr ""
+
+
+msgctxt "#32250"
+msgid "Music"
+msgstr ""
+
+msgctxt "#32251"
+msgid "Use currently playing music for image search"
 msgstr ""
 
 

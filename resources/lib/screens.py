@@ -76,6 +76,7 @@ class ctl_animator(threading.Thread):
     GROUP_ID=100  #in the xml file. this is the groupcontrol where all images are on
     grid_positions=[]
     temp_list=[]  #temporary list for keeping track of control ids (for swap sequences)
+    direction=False  #used in some animation
 
     beat_patterns=[
                    [ [4,15],[3,16],[2,17],[1,18],[0,19],[5,14],[9,10] ],
@@ -111,7 +112,7 @@ class ctl_animator(threading.Thread):
         #log( pprint.pformat(self.grid_positions ) )
 
     def run(self):
-        log('@animator thread start ' + repr(self.image_control_ids))    
+        #log('@animator thread start ' + repr(self.image_control_ids))    
         try:
             self.running = True
             while self.running:    #while not self.monitor.abortRequested():
@@ -119,14 +120,15 @@ class ctl_animator(threading.Thread):
                 #log('  @control ids:' + repr(self.image_control_ids))    
                 msec_per_image=2000
                 
+                self.direction=bool(random.getrandbits(1))
+                #log( 'self.direction:' + repr(self.direction))
+
                 option, f=random.choice(self.animation_functions)
-                #option, f=self.animation_functions[13]
-                #option, f=self.animation_functions[2]  
-                #option, f=self.animation_functions[11]  #swap grid random
-                #option, f=self.animation_functions[12]  #grid_zoom_pan
+                #option, f=self.animation_functions[13]   #corridor
+                #option, f=self.animation_functions[11]  
                 #f=self.test; option='once'
                 
-                #log('  @animation: ' + repr( f ) ) 
+                log('  @animation: ' + repr( f ) ) 
                 
                 if option=='r': ctl_ids=reversed(self.image_control_ids)
                 else:           ctl_ids=self.image_control_ids
@@ -245,9 +247,11 @@ class ctl_animator(threading.Thread):
         img_h=320  #int(image_dict.get('height'))
         half_img=int(img_w/2)
         ANIMATION=[]
-
-        pos_or_neg=['','-']
-        pn=random.choice(pos_or_neg)        
+        
+        rs=360;re=0   #rotate start, rotate end
+        if self.direction: #-- determine spin direction
+            rs=-360;re=0
+                   
         rand_x_pos=random.randint(  0, (self.screen_w-img_w) )
 
         smallest_x_no_crop= int( self.screen_w*0.165 )  #about 210  #any lower and the image will crop when rotated
@@ -267,7 +271,7 @@ class ctl_animator(threading.Thread):
             center='auto'
         
         ANIMATION.extend( [
-                           animation_format( 0, time, 'rotatey',   360,  0,   'linear', None, center,'loop=true' ),
+                           animation_format( 0, time, 'rotatey', rs,  re,   'linear', None, center,'loop=true' ),
                            #animation_format( time, 2000, 'fade',   100,  0,   'quadratic',  'in', '','' ),
                            #animation_format( 0   , 2000, 'fade',     0,100,   'quadratic', 'out', '','' ),
                            ] )
@@ -560,8 +564,6 @@ class ctl_animator(threading.Thread):
                 xbmc.sleep(sleep_msec_after_every_control)  #having it sleep will make the animation delay a bit. just to make it more interesting. 
 
     def bpm_grid_random(self, control_id, delay, time ):
-        self.arrange_all_controls_to_grid(4000)
-        
         msec_bpm = self.get_bpm_msec()
         
         number_of_beats = int( time / msec_bpm )
@@ -572,11 +574,7 @@ class ctl_animator(threading.Thread):
             self.beat( iids, msec_bpm )
             xbmc.sleep( msec_bpm ) #make sure to sleep so that animation finishes
             
-        self.random_grid_out_animations(0,2000)            
-
     def swap_grid_random(self, control_id, delay, time ):
-        self.arrange_all_controls_to_grid(4000)
-        
         msec_bpm = self.get_bpm_msec()
         msec_bpm = (msec_bpm * 2)
         
@@ -590,11 +588,7 @@ class ctl_animator(threading.Thread):
             self.swap_control_positions( iid1, iid2, delay=0, time=msec_bpm, tween='cubic', easing='inout')
             xbmc.sleep( msec_bpm ) #make sure to sleep so that animation finishes
         
-        self.random_grid_out_animations(0,2000)
-    
     def bpm_grid(self, control_id, delay, time ):
-        self.arrange_all_controls_to_grid(4000)
-        #self.wait(4000) #wait for arrange_all_controls_to_grid animation to finish
         msec_bpm = self.get_bpm_msec()
                 
         pattern_cycle=cycle( random.choice(self.beat_patterns) )
@@ -607,7 +601,23 @@ class ctl_animator(threading.Thread):
             self.beat( index_ids, msec_bpm, animation_style )
             xbmc.sleep( msec_bpm )  #make sure to sleep so that animation finishes
 
+        
+    def grid_random(self, control_id, delay, time ):
+        self.arrange_all_controls_to_grid(4000)
+
+        #decide which grid animation to perform
+        anim_mode=random.randint(0,2)
+        
+        f=random.choice([ 
+                         self.bpm_grid_random,
+                         self.swap_grid_random,
+                         self.bpm_grid
+                         ])
+        
+        f(control_id, delay, time)
+        
         self.random_grid_out_animations(0,2000)
+        
 
     def parade(self, control_id, delay, time ):
 
@@ -615,38 +625,154 @@ class ctl_animator(threading.Thread):
         time_slice = time/len(self.image_control_ids) #time wehen next image comes out
         a_time= time_slice * concurrent_images        #how long each image animation is performed
  
-        direction=bool(random.getrandbits(1))
- 
         for id in reversed(self.image_control_ids):
 
             img_ctl=self.window.getControl( id )
         
             ANIMATION=[]
     
-            if direction:
+            if self.direction:
                 img_ctl.setPosition(750, 250)
                 
                 ANIMATION.extend( [
-                                   animation_format(           0,      0, 'zoom',    200,    200,   'linear', None, 'auto','' ),
-                                   animation_format(       delay, a_time, 'rotatey',-100,     10,   'sine', 'out', ' 0,00','' ), 
-                                   animation_format( a_time*0.75,    800, 'fade',    100,      0,   'sine','in'   ),
+                                   animation_format(           0,          0,   'zoom', 200,    200, 'linear', None, 'auto','' ),
+                                   animation_format(       delay,     a_time,'rotatey',-100,     10, 'sine','out', ' 0,00','' ),
+                                   animation_format(       delay, a_time*0.6,   'fade',   0,    100, 'sine','out'   ), 
+                                   animation_format( a_time*0.75,        800,   'fade', 100,      0, 'sine','in'   ),
                                    #animation_format(      a_time,    800, 'slide', '0,0','500,0',   'sine','in'   ),   #slide away
                                    ] )
             else:        
                 img_ctl.setPosition(250, 250)
                 
                 ANIMATION.extend( [
-                                   animation_format(           0,      0, 'zoom',    200,  200,   'linear', None, 'auto','' ),
-                                   animation_format(       delay, a_time, 'rotatey', 100,  -10,   'sine', 'out', '1080,00','' ), 
-                                   animation_format( a_time*0.75,    800, 'fade',    100,    0,   'sine','in'   ),
+                                   animation_format(           0,          0,   'zoom', 200,  200, 'linear', None, 'auto','' ),
+                                   animation_format(       delay,     a_time,'rotatey', 100,  -10, 'sine','out', '1080,00','' ),
+                                   animation_format(       delay, a_time*0.6,   'fade',   0,  100, 'sine','out'   ), 
+                                   animation_format( a_time*0.75,        800,   'fade', 100,    0, 'sine','in'   ),
                                    #animation_format(      a_time,    800, 'slide', '0,0','-500,0',   'sine','in'   ),   #slide away
                                    ] )
     
-            self.vis_ctl_add(control_id)
+            self.vis_ctl_add(id)
             img_ctl.setAnimations( ANIMATION )
-            self.vis_ctl_remove_after( a_time+800, control_id)
+            self.vis_ctl_remove_after( time*1.2, id)
         
             self.wait(time_slice) 
+            
+            
+    def corridor(self, control_id, delay, time ):
+        concurrent_images=10
+        time_slice = time/len(self.image_control_ids) #time wehen next image comes out
+        time= time_slice * concurrent_images        #how long each image animation is performed
+        
+        style='in'
+
+        pn=random.choice(['','-'])
+        start='%s360'%pn
+        #note: rotate 0-30 deg then delay with rotate 30-0 deg doesn't seem to work. image will start rotated at 30 
+        rotate_animations=[ [],
+                            [ animation_format( time/2, (time),  'rotate', start, 0, 'cubic', 'inout',    'auto', '' ), ],
+                            [],
+                          ]
+        self.group_ctl.setAnimations( random.choice( rotate_animations ) )
+        
+        for id in self.image_control_ids: #reversed(self.image_control_ids):
+            img_ctl=self.window.getControl( id )
+            img_ctl.setAnimations( [animation_format( 0, 0, 'fade', 0, 0 )] )
+
+            img_w=img_ctl.getWidth()
+            img_h=img_ctl.getHeight()
+            img_x, img_y = img_ctl.getPosition()
+            
+            center_x=640 -img_x - 80 #center x & y for this image relative to its original position
+            center_y=360 -img_y - 80
+            ANIMATION=[]
+        
+            random_distance_from_center_x=self.screen_w + img_w
+            random_distance_from_center_y=self.screen_h + img_h 
+    
+            if self.direction:
+                img_centered="{0},{1}".format(center_x-3000,center_y)
+                deg = 0
+                rs,re=83,83  #rotate start & end
+                rcs='1200,0'     #rotate center, for rotatey: center="x,z"
+            else:
+                img_centered="{0},{1}".format(center_x+3000,center_y)
+                deg = 180
+                rs,re=-83,-83  #rotate start & end
+                rcs='80,0'     #rotate center, for rotatey: center="x,z"
+
+            #make the images alternate on left and right                
+            self.direction = not self.direction
+                
+            rad=math.radians(deg)
+            rand_x_pos = center_x + int( self.screen_w/1.2 * math.cos(rad) )
+            rand_y_pos = center_y + int( self.screen_h/1.2 * math.sin(rad) )
+            
+            if style=='out':
+                start="{0},{1}".format(rand_x_pos,rand_y_pos)
+                end=img_centered
+                zs=380;ze=0   #zoom start and end
+                fs=100;fe=0   #fade start & end
+                #edge animation does not work with zoom out. we cannot loop the fade-in of the image when it is at the edge because time is short, will loop too fast. 
+                edge_animation=('conditional','condition=false') #animation_format( delay, 1000, 'fade',   0,  100, 'cubic',      'out',    '','' )
+            elif style=='in':
+                start=img_centered
+                end="{0},{1}".format(rand_x_pos,rand_y_pos)
+                zs=25;ze=250   #zoom start and end
+                fs=10;fe=100   #fade start & end
+                edge_animation=animation_format( time, 1000, 'fade',   100,    0, 'cubic',      'in' )
+            #end="{0},{1}".format(1200,700)
+            #log( ' %d° start: %s end: %s'  %(deg, start, end ) )
+            ANIMATION.extend( [
+                               animation_format(delay,        0,'rotatey',    rs,  re, 'linear','',   rcs ),
+                               animation_format(delay,     time,  'slide', start, end, 'linear','',    '' ), 
+                               animation_format(delay,     time,   'zoom',    zs,  ze, 'linear','','auto' ),
+                               animation_format(delay, time*0.8,   'fade',    fs,  fe, 'linear','',    '' ),
+                               edge_animation,
+                               ] )
+    
+            self.vis_ctl_add(id)
+            img_ctl.setAnimations( ANIMATION )
+            self.vis_ctl_remove_after( time , id) 
+
+            self.wait(time_slice)
+            
+        #reset the canvas animation    
+        self.group_ctl.setAnimations( [], )
+
+    def wall_slide(self, control_id, delay, time ):
+        img_ctl=self.window.getControl( control_id )
+        img_w=320  #int(image_dict.get('width'))
+        img_h=320  #int(image_dict.get('height'))
+        half_img=int(img_w/2)
+        ANIMATION=[]
+        
+        if self.direction:
+            img_ctl.setPosition(1600, 270)
+            sx=-2200; sy=0
+            rs,re=50,50     #rotate start & end
+            rcs='1200,0'    #rotate center, for rotatey: center="x,z"
+        else:
+            img_ctl.setPosition(-580, 270)
+            sx=2200; sy=0
+            rs,re=-50,-50  #rotate start & end
+            rcs='80,0'     #rotate center, for rotatey: center="x,z"
+
+        ex=0; ey=0
+        
+        start="{0},{1}".format(sx,sy)
+        end="{0},{1}".format(ex,ey)
+
+        ANIMATION.extend( [
+                           animation_format( delay,        0, 'rotatey',   rs,  re,'linear',  '',rcs ),
+                           animation_format( delay,        0,    'zoom',  300, 300,'linear',  '','auto' ), 
+                           animation_format( delay,     time,   'slide',start, end,'linear','in','' ),
+                           animation_format( delay, time*0.9,    'fade',    5, 100,   'sine','in','' ),
+                           ] )
+
+        self.vis_ctl_add(control_id)
+        img_ctl.setAnimations( ANIMATION )
+        self.vis_ctl_remove_after( time*1.2, control_id)
 
     def beat(self, index_ids, msec_bpm, animation_style='zoom' ):
         #'beat'-animate the control indicated by the grid index id
@@ -868,11 +994,11 @@ class ctl_animator(threading.Thread):
                         ('',grid),      
                         ('u',horizon),
                         ('once',rotate_canvas),
-                        ('onceb',bpm_grid_random),
-                        ('onceb',bpm_grid), 
-                        ('onceb',swap_grid_random),
+                        ('onceb',grid_random),    #calls 3 different grid animation 
                         ('onceb',grid_zoom_pan),
                         ('onceb',parade),
+                        ('u',wall_slide),
+                        ('onceb',corridor),
                          ]
 
 

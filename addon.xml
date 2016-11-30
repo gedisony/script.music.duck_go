@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.music.duck_go" 
 	name="Music Duck Go" 
-	version="0.3.5" 
+	version="0.3.7" 
 	provider-name="gedisony">
     <requires>
         <import addon="xbmc.python"                  version="2.20.0"/>
@@ -15,7 +15,7 @@
         <platform>all</platform>
         <language/>
         <website></website>
-        <news>Added ability to filter images by title and url</news>
+        <news></news>
         <source>https://github.com/gedisony/script.music.duck_go</source>
         <forum>http://forum.kodi.tv/showthread.php?tid=294154</forum>
         <email>gediso+ny at gmail dot com</email>

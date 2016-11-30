@@ -73,6 +73,7 @@ resources.lib.requests_cache.install_cache(CACHE_FILE, backend='sqlite', expire_
 
 SEARCH_TEMPLATE=addon.getSetting("search_template")
 SEARCH_TEMPLATE2=addon.getSetting("search_template2")
+ENABLE_MUSIC_SEARCH=addon.getSetting("enable_music_search") == "true"
 
 FILTER_URL  =addon.getSetting("filter_url")
 FILTER_TITLE=addon.getSetting("filter_title")
@@ -257,7 +258,7 @@ class Worker(threading.Thread):
     def generate_slide_for_music(self):
         thumbs=[]
 
-        if xbmc.Player().isPlayingAudio():
+        if xbmc.Player().isPlayingAudio() and ENABLE_MUSIC_SEARCH:
             #log('audio is playing ' )
             song_title=xbmc.Player().getMusicInfoTag().getTitle()
             song_artist=xbmc.Player().getMusicInfoTag().getArtist()
