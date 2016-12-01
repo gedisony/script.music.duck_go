@@ -31,6 +31,7 @@ from screensaver import log, cycle
 import pprint
 
 import PIL
+from random import randint
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
@@ -125,10 +126,10 @@ class ctl_animator(threading.Thread):
 
                 option, f=random.choice(self.animation_functions)
                 #option, f=self.animation_functions[13]   #corridor
-                #option, f=self.animation_functions[11]  
-                #f=self.test; option='once'
+                #option, f=self.animation_functions[15]  
+                #f=self.test; option='onceb'
                 
-                log('  @animation: ' + repr( f ) ) 
+                #log('  @animation: ' + repr( f ) ) 
                 
                 if option=='r': ctl_ids=reversed(self.image_control_ids)
                 else:           ctl_ids=self.image_control_ids
@@ -188,44 +189,100 @@ class ctl_animator(threading.Thread):
                                               )
         
         self.vis_ctl_remove_all()
-        
-    def test(self, style, control_id, delay, time):
-        log('  running test animation method')
-        #get some controls out of the way
-#        img_ctl_b=self.window.getControl( 114 ); img_ctl_b.setVisible(False)
-#        img_ctl_b=self.window.getControl( 120 ); img_ctl_b.setVisible(False)
-#
-#        control_id=102
-#        self.slide_control_to_grid( control_id, 1, 0, 1000, [animation_format(    500, 1000,    'zoom',  100, 70,   'sine', 'in','auto','' ),],True)
-#        #self.slide_control_to_grid( 114, 5, 0, 2000)
-#        #img_ctl=self.window.getControl( control_id )
-#        #
-#
-#        bpm=120
-#        
-#        msec_bpm      = 60000/bpm
-#        half_msec_bpm = 30000/bpm
-        
 
-        self.arrange_all_controls_to_grid()
-        xbmc.sleep(2000)
+    def grid_flip(self, control_id, delay, time):
 
-        x_pos, y_pos = self.grid_positions[5]
-        end='{},{}'.format(x_pos, y_pos )
-        end='{},{}'.format(1280, 200 )
-        #log( end )
-        #'0,0'
-        #'0,240'
-        #'0,480'
-        xbmc.sleep(4000)
+        #t_arrange_controls=4000  #time duration for images to move to their grid position
+        zoom_start = 60  #how big/small the images start at
+
+        indexes=[]   #used to store indexes of the visible controls
+
+        #some controls still animating from previous animations, hide them. (need to find a way to only hide controls that are showing)
+        #self.apply_animation_to_all_controls( [animation_format( delay, 2000, 'fade', 100, 0, 'cubic', 'out' ),],
+        #                                       0  )
+        #self.wait(2000)
         
+        #rotate the canvas horizontal       
+        self.arrange_all_controls_to_grid(2000, False, zoom_start, 0 )
+        self.group_ctl.setAnimations( [animation_format( delay, 0, 'rotatex', 0, 90,'','','400,0' )] )
+
+        #flip the images to vertical 
+        for i, id in enumerate(self.image_control_ids):
+            img_ctl=self.window.getControl( id )
+            img_x, img_y = img_ctl.getPosition()
+            centery=img_y+160
+            c="{0},0".format(centery)
+            img_ctl.setAnimations( [
+                                    animation_format( 400*i, 800, 'rotatex', 0, -90, 'sine','inout',c ),
+                                    animation_format( 400*i, 800,    'fade', 0, 100,'cubic','out' ),
+                                    animation_format( 0,0,'zoom', zoom_start, zoom_start,'','','auto' ),
+                                    ] )
+
+        r=[0,1,2,3,4]
+        indexes=[]   #used to store indexes of the visible controls
+
+        #divide the time allotted for this animation between zoom and slide
+        t_end_animations=8000
+        time=time-t_end_animations
+        time_slice=(time/5)
+        t_zoom =time_slice*1
+        t_slide=time_slice*2
+        delay_zoom_out=delay+t_zoom+t_slide
+
+        rr= 3 #random.randint(0,3)      
+        zy = [-10,230,490,730][rr]   #log('zy='+repr( zy ))
+        indexes=[ x+(rr*5) for x in r ] #;log(repr( indexes ))
+
+        #random direction
+        direction=bool(random.getrandbits(1))
+        if direction:
+            slide1='400,120'
+            slide2='-800,0'
+            slide3='400,-120'
+        else:
+            slide1='-400,120'
+            slide2='800,0'
+            slide3='-400,-120'
+
+        #this portion figures out which controls are visible (don't update with new image)
+        zoomed_in_controls=[ self.translate_grid_index_to_control_id(x) for x in indexes ] 
+        #log('zoomed_in_controls=' + repr( zoomed_in_controls ))
+        self.vis_ctl_add_each(zoomed_in_controls, (delay+t_zoom)*0.7 )
+        self.vis_ctl_remove_each(zoomed_in_controls, delay_zoom_out*1.3 )
+
+        #note: using zoom animation warps the image (makes them shorter). the zoom animation doesn't work as expected
+        self.group_ctl.setAnimations( [ animation_format(      0,      0, 'rotatex', 0, 90,'','','400,0' ),
+                                       animation_format( delay          ,t_zoom,   'slide', '0,0', slide1,  'sine','inout',     '' ),
+                                       animation_format( delay+t_zoom  ,t_slide,   'slide', '0,0', slide2,  'sine','inout',     '' ),
+                                       animation_format( delay_zoom_out,t_zoom,    'slide', '0,0', slide3,  'sine','inout',     '' ),
+                                       
+                                        #animation_format( delay,          t_zoom,  'zoom',   100,    303,  'sine', 'out',  center ),
+                                        #animation_format( delay+t_zoom  ,t_slide, 'slide', '0,0', slide1,  'sine','inout',     '' ), 
+                                        #animation_format( delay_zoom_out, t_zoom, 'slide', '0,0', slide2,  'sine','inout',     '' ),
+                                        #animation_format( delay_zoom_out, t_zoom,  'zoom',   100,     33,  'sine','inout', center ),
+                                       ] )
         
-        #self.group_ctl.setAnimations( [ animation_format( 0, 2000, 'slide', '0,0',end,      '',    '','auto','' ) ] )
-        
-        #self.swap_control_positions(1, 19 )
-        
-        self.running=False
-        pass
+        self.wait(delay_zoom_out + (t_zoom/2) )
+
+        #have images slide to the user then fade away one at a time          
+        d_img=t_end_animations/len(self.image_control_ids)  #delay time per image
+        for i, id in enumerate(reversed(self.image_control_ids)):
+            img_ctl=self.window.getControl( id )
+            img_x, img_y = img_ctl.getPosition()
+            centery=img_y+160
+            c="{0},0".format(centery)
+            img_ctl.setAnimations( [
+                                    animation_format(        0,       0,'rotatex',          0,       -90,     '',   '',c ),
+                                    animation_format( d_img*i,     2000,  'slide',      '0,0',   '0,300', 'sine','in' ),
+                                    animation_format( d_img*i,     1000,   'fade',        100,         0,'cubic','in' ),
+                                    animation_format( d_img*i,     1000,   'zoom', zoom_start,       150, 'sine','','auto' ),
+                                    ] )
+        self.wait(t_end_animations+1000) 
+    
+        #set the canvas back to initial position
+        self.group_ctl.setAnimations( [] )
+    
+        #self.wait(8000)
     
     def swap_control_positions(self, grid_index_a, grid_index_b, delay=0, time=2000, tween='cubic', easing='inout'):
         
@@ -238,7 +295,6 @@ class ctl_animator(threading.Thread):
 
         #keep a note of which controls were swapped
         self.temp_list[grid_index_a], self.temp_list[grid_index_b] = self.temp_list[grid_index_b], self.temp_list[grid_index_a]
-
 
     def rotate_animation(self, style, control_id, delay, time):
 
@@ -401,7 +457,6 @@ class ctl_animator(threading.Thread):
         img_ctl.setAnimations( ANIMATION )
         self.vis_ctl_remove_after( time+1000 , control_id) 
         
-        
     def warp(self,style,control_id, delay, time ):
         
         img_ctl=self.window.getControl( control_id )
@@ -532,7 +587,7 @@ class ctl_animator(threading.Thread):
         
         self.group_ctl.setAnimations( random.choice( rotate_animations ) )
 
-    def arrange_all_controls_to_grid(self, time=4000):
+    def arrange_all_controls_to_grid(self, time=4000, shuffle=True, zoom=70, fade_to=100, additioal_animation=('','')):
         #save the control ids in a temporary list. to be used later if swap animation is run (their index correspond to grid positions
         #note:  self.temp_list=self.image_control_ids will not work. the lists are copied by pointers, modifying temp_list will also affect image_control_ids
         #we need to actually copy self.image_control_ids into self.temp_list
@@ -541,10 +596,13 @@ class ctl_animator(threading.Thread):
         
         time_slice = time/len(self.image_control_ids)
         extra_animation=[
-                         animation_format( 0,            0, 'zoom', 70,  70,     '',   '','auto','' ),
-                         animation_format( 0, time_slice*4, 'fade',  0, 100,'cubic', 'in',    '','' ),
+                         additioal_animation,
+                         animation_format( 0,            0, 'zoom',zoom,   zoom,     '',   '','auto','' ),
+                         animation_format( 0, time_slice*4, 'fade',   0,fade_to,'cubic', 'in',    '','' ),
                          ]
-        random.shuffle(self.temp_list)
+        if shuffle:
+            random.shuffle(self.temp_list)
+            
         for idx, id in enumerate(self.temp_list):
             increasing_delay=((idx/2)*time_slice)
             self.slide_control_to_grid(id, idx, 0, time-(increasing_delay), extra_animation,True )
@@ -617,10 +675,8 @@ class ctl_animator(threading.Thread):
         f(control_id, delay, time)
         
         self.random_grid_out_animations(0,2000)
-        
 
     def parade(self, control_id, delay, time ):
-
         concurrent_images=7
         time_slice = time/len(self.image_control_ids) #time wehen next image comes out
         a_time= time_slice * concurrent_images        #how long each image animation is performed
@@ -628,7 +684,7 @@ class ctl_animator(threading.Thread):
         for id in reversed(self.image_control_ids):
 
             img_ctl=self.window.getControl( id )
-        
+            img_ctl.setVisible(False)
             ANIMATION=[]
     
             if self.direction:
@@ -654,10 +710,10 @@ class ctl_animator(threading.Thread):
     
             self.vis_ctl_add(id)
             img_ctl.setAnimations( ANIMATION )
+            img_ctl.setVisible(True)
             self.vis_ctl_remove_after( time*1.2, id)
         
             self.wait(time_slice) 
-            
             
     def corridor(self, control_id, delay, time ):
         concurrent_images=10
@@ -665,7 +721,6 @@ class ctl_animator(threading.Thread):
         time= time_slice * concurrent_images        #how long each image animation is performed
         
         style='in'
-
         pn=random.choice(['','-'])
         start='%s360'%pn
         #note: rotate 0-30 deg then delay with rotate 30-0 deg doesn't seem to work. image will start rotated at 30 
@@ -753,7 +808,7 @@ class ctl_animator(threading.Thread):
             rs,re=50,50     #rotate start & end
             rcs='1200,0'    #rotate center, for rotatey: center="x,z"
         else:
-            img_ctl.setPosition(-580, 270)
+            img_ctl.setPosition(-600, 270)
             sx=2200; sy=0
             rs,re=-50,-50  #rotate start & end
             rcs='80,0'     #rotate center, for rotatey: center="x,z"
@@ -866,6 +921,70 @@ class ctl_animator(threading.Thread):
         self.wait(time) #wait for the entire time alloted to this animation sequence
         
         self.random_grid_out_animations(0,2000) 
+
+    def grid_leave(self, control_id, delay, time):
+        t_arrange_controls=4000  #time duration for images to move to their grid position
+        zoom_start = 50  #how big/small the images start at
+
+        indexes=[]   #used to store indexes of the visible controls
+
+        #divide the time allotted for this animation
+        time=time-t_arrange_controls
+        concurrent=4
+        time_slice = time/len(self.image_control_ids) * concurrent  #time per image  =time/20
+        cc_wait= time_slice / concurrent        #wait before animating another image        
+        
+        self.arrange_all_controls_to_grid(t_arrange_controls, True, zoom_start,50)
+
+        for id in reversed(self.image_control_ids):
+            img_ctl=self.window.getControl( id )
+            img_ctl.setAnimations( [animation_format( 0, 0, 'fade', 0, 0 )] )
+
+            img_w=img_ctl.getWidth()
+            img_h=img_ctl.getHeight()
+            img_x, img_y = img_ctl.getPosition()
+            
+            center_x=640 -img_x - 80 #center x & y for this image relative to its original position
+            center_y=360 -img_y - 80
+            ANIMATION=[]
+        
+            deg=random.randint(0,360)    
+            rad=math.radians(deg)
+            rand_x_pos = center_x + int( self.screen_w/3 * math.cos(rad) )
+            rand_y_pos = center_y + int( self.screen_h/3 * math.sin(rad) )
+            
+            start="0,0"
+            end="{0},{1}".format(rand_x_pos,rand_y_pos)
+            zs=zoom_start;ze=200   #zoom start and end
+            fs=50;fe=100           #fade start & end
+
+            centery=img_y+160
+            cy="{0},0".format(img_y+( img_h*(zs/100) )  )
+            cx="{0},0".format(img_x+( img_h*(zs/100) )  )            
+            extra_deg=randint(-270,270)
+            extra_animation=random.choice([  
+                                           ('',''),
+                                           animation_format( delay, time_slice, 'rotate', 0, extra_deg, 'cubic', 'in','auto' ),
+                                           animation_format( delay, time_slice,'rotatey', 0, extra_deg, 'cubic', 'in',    cx ),
+                                           animation_format( delay, time_slice,'rotatex', 0, extra_deg, 'cubic', 'in',    cy ),
+                                           ])
+
+            ANIMATION.extend( [
+                               animation_format(          delay, time_slice,'slide', start, end, 'back','in',    '' ), 
+                               animation_format(          delay, time_slice, 'zoom',    zs,  ze, 'cubic','in','auto' ),
+                               animation_format(          delay,       2000, 'fade',    fs,  fe, 'linear','',    '' ),
+                               animation_format( time_slice*0.8,       1000, 'fade',   100,    0, 'cubic',      'in' ),
+                               extra_animation,
+                               ] )
+    
+            self.vis_ctl_add(id)
+            img_ctl.setAnimations( ANIMATION )
+            self.vis_ctl_remove_after( time_slice+500 , id) 
+
+            self.wait(cc_wait)
+        
+        #an extra wait to make sure the last image makes it just in time
+        self.wait(time_slice / (concurrent-1) )
 
     def slide_control_to_grid(self,control_id,grid_position_index, delay=0, time=0, extra_animation=[], set_position=False, tween='', easing=''  ):
         #log('   slide control to grid position %d' %(grid_position_index))
@@ -999,6 +1118,8 @@ class ctl_animator(threading.Thread):
                         ('onceb',parade),
                         ('u',wall_slide),
                         ('onceb',corridor),
+                        ('onceb',grid_leave),
+                        ('onceb',grid_flip),
                          ]
 
 
