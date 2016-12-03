@@ -587,7 +587,7 @@ class ctl_animator(threading.Thread):
         
         self.group_ctl.setAnimations( random.choice( rotate_animations ) )
 
-    def arrange_all_controls_to_grid(self, time=4000, shuffle=True, zoom=70, fade_to=100, additioal_animation=('','')):
+    def arrange_all_controls_to_grid(self, time=4000, shuffle=True, zoom=70, fade_to=100, additioal_animation=('conditional','condition=false')):
         #save the control ids in a temporary list. to be used later if swap animation is run (their index correspond to grid positions
         #note:  self.temp_list=self.image_control_ids will not work. the lists are copied by pointers, modifying temp_list will also affect image_control_ids
         #we need to actually copy self.image_control_ids into self.temp_list
@@ -963,7 +963,7 @@ class ctl_animator(threading.Thread):
             cx="{0},0".format(img_x+( img_h*(zs/100) )  )            
             extra_deg=randint(-270,270)
             extra_animation=random.choice([  
-                                           ('',''),
+                                           ('conditional','condition=false'),
                                            animation_format( delay, time_slice, 'rotate', 0, extra_deg, 'cubic', 'in','auto' ),
                                            animation_format( delay, time_slice,'rotatey', 0, extra_deg, 'cubic', 'in',    cx ),
                                            animation_format( delay, time_slice,'rotatex', 0, extra_deg, 'cubic', 'in',    cy ),
