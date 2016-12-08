@@ -27,7 +27,7 @@
     	<setting id="search_no_music1"         type="text"        label="32104"  default="universe[pages=4]"/>
     	<setting id="search_no_music2"         type="text"        label="32104"  default="[terms=turtles,jellyfish,lionfish]"/>
     	<setting id="search_no_music3"         type="text"        label="32104"  default="[terms=cake,fruit] dessert"/>
-    	<setting id="search_no_music4"         type="text"        label="32104"  default="images site:boardgamegeek.com"/>
+    	<setting id="search_no_music4"         type="text"        label="32104"  default="animation site:rogerebert.com[pages=3]"/>
     	<setting id="search_no_music5"         type="text"        label="32104"  default="portrait[terms=site:overwatch.gamepedia.com,site:https://playoverwatch.com]"/>
     	<setting id="search_no_music6"         type="text"        label="32104"  default="png site:bulbapedia.bulbagarden.net[pages=3]"/>
     	<setting id="search_no_music7"         type="text"        label="32104"  default="[terms=items,enemies] png site:skyrim.gamepedia.com"/>
@@ -40,7 +40,7 @@
     	<setting id="label1"              type="sep"                                                      />
     	
 		<setting id="label1"              type="lsep"        label="32105"  enable="eq(-2,true)"               />
-    	<setting id="search_template"     type="text"        label="32104"  enable="eq(-3,true)" default="'{title}' related:'{artist}' music art images"                   />
+    	<setting id="search_template"     type="text"        label="32104"  enable="eq(-3,true)" default="'{title}' related:'{artist}' "                   />
     	<setting id="search_template2"    type="text"        label="32109"  enable="eq(-4,true)" default="'{artist}' music"                   />
     	<setting id="label1"              type="sep"                        enable="eq(-5,true)"                             />
     	

@@ -31,7 +31,7 @@ from screensaver import log, cycle
 import pprint
 
 import PIL
-from random import randint
+from random import randint, getrandbits
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
@@ -126,7 +126,7 @@ class ctl_animator(threading.Thread):
 
                 option, f=random.choice(self.animation_functions)
                 #option, f=self.animation_functions[13]   #corridor
-                #option, f=self.animation_functions[15]  
+                #option, f=self.animation_functions[16]  
                 #f=self.test; option='onceb'
                 
                 #log('  @animation: ' + repr( f ) ) 
@@ -180,11 +180,11 @@ class ctl_animator(threading.Thread):
             xbmc.sleep(chunk_wait_time)
             #xbmc.Monitor().waitForAbort( chunk_wait_time/1000  )
     
-    def random_grid_out_animations(self, delay, time, additional_animation=[] ):
+    def random_grid_out_animations(self, delay, time, zoom=70, additional_animation=[] ):
         
         #add a slow fade animation to all images after beats done 
-        self.apply_animation_to_all_controls( [animation_format( delay,    0, 'zoom',  70,70,      '',    '','auto','' ),     #maintain zoom size so that transition won't be abrupt
-                                               animation_format( delay, time, 'fade', 100, 0, 'cubic', 'out' ),],
+        self.apply_animation_to_all_controls( [animation_format( delay,    0, 'zoom',zoom,zoom,      '',    '','auto','' ),     #maintain zoom size so that transition won't be abrupt
+                                               animation_format( delay, time, 'fade', 100,   0, 'cubic', 'out' ),],
                                                10
                                               )
         
@@ -407,36 +407,49 @@ class ctl_animator(threading.Thread):
         img_h=img_ctl.getHeight()
         
         ANIMATION=[]
-        rnd_delay=delay+random.choice([(time/2),(time/3),(time*0.6) ])
+        #rnd_delay=delay+random.choice([(time/2),(time/3),(time*0.6) ])
         #log('  %d rnd_delay:%d' %(time, rnd_delay) )
-        
+
         rand_x_pos=random.randint(0,(1280-img_w))
-        rand_y_pos=random.randint(0,(720-img_h))
+        rand_y_pos=random.randint(0,(720-(img_h/2)))
         v_or_h=random.choice([1,0])
         
         direction=random.choice([1,0])
 
         #rnd_slide_tweens=random.choice(['sine','linear','quadratic','circle','cubic'])
-        rnd_slide_tweens=random.choice(['linear','quadratic'])
+        rnd_slide_tweens=random.choice(['linear','quadratic','sine'])
         rnd_slide_easing=random.choice(['in','out'])
 
+        #v_or_h=False
+        #direction=True
         
         if v_or_h:  #horizontal slide
-            img_ctl.setPosition(0, rand_y_pos)
+            img_ctl.setPosition(self.screen_w+img_w+50, rand_y_pos) #position the control off the screen. there is a flicker when we position a control, we want it off screen.
             rand_x_pos=0
-            #ANIMATION.extend( [animation_format(delay, time, 'slide', start, end, 'sine', 'out' ), ] )
-            sx=1280;ex=(-1*img_w)
+            
+            #if direction: cx= 660;re=180
+            #else:         cx= 880;re=-180
+            #adding this BEFORE the 'slide' will flip the image and go back
+            #ANIMATION.extend( [animation_format((time/2), 2000, 'rotatey', 0, re, 'cubic', 'inout', '%d,0'%cx ), ] )
+            
+            #adding this AFTER the 'slide' will flip the image and continue on 
+            #animation_format((time/2), 2000, 'rotatey', 0, -180, 'sine', 'inout', '1820,0' ), 
+            
+            sx=-1*(self.screen_w + (img_w+50)*2 )
+            ex=0
             sy=0;ey=0
             cx=0
             cy=rand_y_pos+(img_h/2) #image center for  rotate effect
         else:      #vertical slide
-            img_ctl.setPosition(rand_x_pos, 0)
+            img_ctl.setPosition(rand_x_pos, self.screen_h+img_h+50)
             rand_y_pos=0
             #ANIMATION.extend( )
             sx=0;ex=0
-            sy=(-1*img_h) ;ey=720
+            sy=-1*(self.screen_h + (img_h+50)*2 ) 
+            ey=0
             cx=rand_x_pos+(img_w/2)  #image center for  rotate effect
             cy=0
+        
         if direction:
             sx,ex=ex,sx
             sy,ey=ey,sy
@@ -447,10 +460,10 @@ class ctl_animator(threading.Thread):
         end="{0},{1}".format(ex,ey)
         
         ANIMATION.extend( [
-                           animation_format(delay, time, 'slide', start, end, rnd_slide_tweens, rnd_slide_easing ), 
+                           animation_format(delay,time,'slide', start, end, rnd_slide_tweens, rnd_slide_easing ),
+                           animation_format( time,1000, 'fade',   100,   0, 'cubic', 'out' ),
                            ] )
         
-        ANIMATION.extend( fade_in_out_animation(delay,time,1000) )
         #ANIMATION.extend( self.addtl_animations_while_sliding( rnd_delay, 1000,cx,cy ) )
 
         self.vis_ctl_add(control_id)
@@ -658,7 +671,6 @@ class ctl_animator(threading.Thread):
             index_ids=pattern_cycle.next()
             self.beat( index_ids, msec_bpm, animation_style )
             xbmc.sleep( msec_bpm )  #make sure to sleep so that animation finishes
-
         
     def grid_random(self, control_id, delay, time ):
         self.arrange_all_controls_to_grid(4000)
@@ -819,10 +831,10 @@ class ctl_animator(threading.Thread):
         end="{0},{1}".format(ex,ey)
 
         ANIMATION.extend( [
-                           animation_format( delay,        0, 'rotatey',   rs,  re,'linear',  '',rcs ),
-                           animation_format( delay,        0,    'zoom',  300, 300,'linear',  '','auto' ), 
-                           animation_format( delay,     time,   'slide',start, end,'linear','in','' ),
-                           animation_format( delay, time*0.9,    'fade',    5, 100,   'sine','in','' ),
+                           animation_format( delay,        0, 'rotatey',   rs,  re,'linear',   '',rcs ),
+                           animation_format( delay,        0,    'zoom',  300, 300,'linear',   '','auto' ), 
+                           animation_format( delay,     time,   'slide',start, end,'linear', 'in','' ),
+                           animation_format( delay, time*0.9,    'fade',    0, 100,  'sine','out','' ),
                            ] )
 
         self.vis_ctl_add(control_id)
@@ -869,7 +881,7 @@ class ctl_animator(threading.Thread):
         t_slide=time_slice*2
         delay_zoom_out=delay+t_zoom+t_slide
 
-        self.arrange_all_controls_to_grid(t_arrange_controls)
+        self.arrange_all_controls_to_grid(t_arrange_controls, True, 60)
         
         diagonal=bool(random.getrandbits(1))
         if diagonal:
@@ -920,7 +932,7 @@ class ctl_animator(threading.Thread):
 #                                       ] )
         self.wait(time) #wait for the entire time alloted to this animation sequence
         
-        self.random_grid_out_animations(0,2000) 
+        self.random_grid_out_animations(0,2000,60) 
 
     def grid_leave(self, control_id, delay, time):
         t_arrange_controls=4000  #time duration for images to move to their grid position
@@ -930,7 +942,7 @@ class ctl_animator(threading.Thread):
 
         #divide the time allotted for this animation
         time=time-t_arrange_controls
-        concurrent=4
+        concurrent=5
         time_slice = time/len(self.image_control_ids) * concurrent  #time per image  =time/20
         cc_wait= time_slice / concurrent        #wait before animating another image        
         
@@ -944,14 +956,14 @@ class ctl_animator(threading.Thread):
             img_h=img_ctl.getHeight()
             img_x, img_y = img_ctl.getPosition()
             
-            center_x=640 -img_x - 80 #center x & y for this image relative to its original position
+            center_x=640 -img_x - 80 
             center_y=360 -img_y - 80
             ANIMATION=[]
         
             deg=random.randint(0,360)    
             rad=math.radians(deg)
-            rand_x_pos = center_x + int( self.screen_w/3 * math.cos(rad) )
-            rand_y_pos = center_y + int( self.screen_h/3 * math.sin(rad) )
+            rand_x_pos = center_x + int( self.screen_w/4 * math.cos(rad) )
+            rand_y_pos = center_y + int( self.screen_h/5 * math.sin(rad) )
             
             start="0,0"
             end="{0},{1}".format(rand_x_pos,rand_y_pos)
@@ -959,9 +971,10 @@ class ctl_animator(threading.Thread):
             fs=50;fe=100           #fade start & end
 
             centery=img_y+160
-            cy="{0},0".format(img_y+( img_h*(zs/100) )  )
-            cx="{0},0".format(img_x+( img_h*(zs/100) )  )            
+            cy="{0},0".format(img_y+( img_h/2 )  )
+            cx="{0},0".format(img_x+( img_w/2 )  )            
             extra_deg=randint(-270,270)
+            #log('%dx%d %d,%d cx=%s cy=%s' %(img_w,img_h,img_x,img_y,cx,cy) )
             extra_animation=random.choice([  
                                            ('conditional','condition=false'),
                                            animation_format( delay, time_slice, 'rotate', 0, extra_deg, 'cubic', 'in','auto' ),
@@ -985,6 +998,78 @@ class ctl_animator(threading.Thread):
         
         #an extra wait to make sure the last image makes it just in time
         self.wait(time_slice / (concurrent-1) )
+
+    def slide_p(self, control_id, delay, time ):
+
+        time_slice=time/len(self.image_control_ids)
+
+        #alter the random to get the lower numbers to show first. these take a long time to cross the screen.        
+        temp_list=list(self.image_control_ids[5:])
+        random.shuffle(temp_list)
+        for i in range(5,0,-1): #1-6
+            temp_list.insert(random.randint(0,6), (i+100) )
+        
+        dual_direction=bool(random.getrandbits(1)) #make image slide from both left or right
+        v_or_h=random.choice([1,0])
+        
+        for id in temp_list:        
+            img_ctl=self.window.getControl( id )
+            img_w=img_ctl.getWidth()
+            img_h=img_ctl.getHeight()
+            
+            ANIMATION=[]
+            
+            rand_x_pos=random.randint(-50,(1280-img_w+50))
+            rand_y_pos=random.randint(0,(720-img_h))
+    
+            #rnd_slide_tweens=random.choice(['sine','linear','quadratic','circle','cubic'])
+            rnd_slide_tweens=random.choice(['linear','sine'])
+            rnd_slide_easing=random.choice(['in','out'])
+            
+            #control_id are 101-120 (slideshowXX.xml file)
+            cid=id-100
+            zoom=cid*10 
+            if zoom<40: zoom=35  #10 is too small
+            #rand_y_pos= int(  (cid*(cid*1.5) ) ) -40
+            y_pos= int( (cid+cid)*15 ) 
+            t=time_slice* ( 2+( len(self.image_control_ids) - cid ) )
+    
+            setposx=self.screen_w+img_w+zoom
+    
+            if v_or_h:  #horizontal slide
+                img_ctl.setPosition(setposx, y_pos)
+                rand_x_pos=0
+                sx=-1*(self.screen_w+(img_w*2)+(zoom*1.7))
+                ex=0
+                sy=0;ey=0
+            else:      #vertical slide
+                img_ctl.setPosition(rand_x_pos, self.screen_h+img_h+zoom)
+                sx=0;ex=0
+                sy=-1*(self.screen_h+(img_h*2)+(zoom*1.5))
+                ey=0
+                
+            #self.direction=False
+            if self.direction:
+                sx,ex=ex,sx
+                sy,ey=ey,sy
+                
+            #dual_direction=False                
+            if dual_direction:
+                self.direction=not self.direction
+                
+            start="{0},{1}".format(sx,sy)
+            end="{0},{1}".format(ex,ey)
+            
+            ANIMATION.extend( [
+                               animation_format(delay, t, 'slide', start, end, rnd_slide_tweens, rnd_slide_easing ),
+                               animation_format(delay, 0,  'zoom', zoom, zoom, '','','auto'  ), 
+                               ] )
+            
+            self.vis_ctl_add(id)
+            img_ctl.setAnimations( ANIMATION )
+            self.vis_ctl_remove_after( t+1000 , id) 
+        
+            self.wait(time_slice )
 
     def slide_control_to_grid(self,control_id,grid_position_index, delay=0, time=0, extra_animation=[], set_position=False, tween='', easing=''  ):
         #log('   slide control to grid position %d' %(grid_position_index))
@@ -1120,6 +1205,7 @@ class ctl_animator(threading.Thread):
                         ('onceb',corridor),
                         ('onceb',grid_leave),
                         ('onceb',grid_flip),
+                        ('onceb',slide_p),
                          ]
 
 
