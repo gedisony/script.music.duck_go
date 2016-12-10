@@ -124,9 +124,9 @@ class ctl_animator(threading.Thread):
                 self.direction=bool(random.getrandbits(1))
                 #log( 'self.direction:' + repr(self.direction))
 
-                option, f=random.choice(self.animation_functions)
+                #option, f=random.choice(self.animation_functions)
                 #option, f=self.animation_functions[13]   #corridor
-                #option, f=self.animation_functions[16]  
+                option, f=self.animation_functions[15]  
                 #f=self.test; option='onceb'
                 
                 #log('  @animation: ' + repr( f ) ) 
@@ -190,8 +190,7 @@ class ctl_animator(threading.Thread):
         
         self.vis_ctl_remove_all()
 
-    def grid_flip(self, control_id, delay, time):
-
+    def grid_tilt(self, control_id, delay, time):
         #t_arrange_controls=4000  #time duration for images to move to their grid position
         zoom_start = 60  #how big/small the images start at
 
@@ -233,6 +232,12 @@ class ctl_animator(threading.Thread):
         zy = [-10,230,490,730][rr]   #log('zy='+repr( zy ))
         indexes=[ x+(rr*5) for x in r ] #;log(repr( indexes ))
 
+        #this portion figures out which controls are visible (don't update with new image)
+        zoomed_in_controls=[ self.translate_grid_index_to_control_id(x) for x in indexes ] 
+        #log('zoomed_in_controls=' + repr( zoomed_in_controls ))
+        self.vis_ctl_add_each(zoomed_in_controls, (delay+t_zoom)*0.7 )
+        self.vis_ctl_remove_each(zoomed_in_controls, delay_zoom_out*1.1 )
+
         #random direction
         direction=bool(random.getrandbits(1))
         if direction:
@@ -243,18 +248,20 @@ class ctl_animator(threading.Thread):
             slide1='-400,120'
             slide2='800,0'
             slide3='-400,-120'
-
-        #this portion figures out which controls are visible (don't update with new image)
-        zoomed_in_controls=[ self.translate_grid_index_to_control_id(x) for x in indexes ] 
-        #log('zoomed_in_controls=' + repr( zoomed_in_controls ))
-        self.vis_ctl_add_each(zoomed_in_controls, (delay+t_zoom)*0.7 )
-        self.vis_ctl_remove_each(zoomed_in_controls, delay_zoom_out*1.3 )
+        
+        #controls where the pulse up/down starts
+        ps='0,200';pe='0,-200'
+        if bool(random.getrandbits(1)):
+            ps,pe=pe,ps
 
         #note: using zoom animation warps the image (makes them shorter). the zoom animation doesn't work as expected
-        self.group_ctl.setAnimations( [ animation_format(      0,      0, 'rotatex', 0, 90,'','','400,0' ),
-                                       animation_format( delay          ,t_zoom,   'slide', '0,0', slide1,  'sine','inout',     '' ),
-                                       animation_format( delay+t_zoom  ,t_slide,   'slide', '0,0', slide2,  'sine','inout',     '' ),
-                                       animation_format( delay_zoom_out,t_zoom,    'slide', '0,0', slide3,  'sine','inout',     '' ),
+        self.group_ctl.setAnimations( [ 
+                                       animation_format( delay,delay_zoom_out/1.5,'slide',    ps,     pe,  'sine','inout',     '','pulse=true' ), #pulse_up_down_animation 
+                                       
+                                       animation_format(             0,      0, 'rotatex',     0,     90,      '',     '','400,0' ),
+                                       animation_format( delay         ,t_zoom,   'slide', '0,0', slide1,  'sine','inout',     '' ),
+                                       animation_format( delay+t_zoom  ,t_slide,  'slide', '0,0', slide2,  'sine','inout',     '' ),
+                                       animation_format( delay_zoom_out,t_zoom,   'slide', '0,0', slide3,  'sine','inout',     '' ),
                                        
                                         #animation_format( delay,          t_zoom,  'zoom',   100,    303,  'sine', 'out',  center ),
                                         #animation_format( delay+t_zoom  ,t_slide, 'slide', '0,0', slide1,  'sine','inout',     '' ), 
@@ -263,6 +270,7 @@ class ctl_animator(threading.Thread):
                                        ] )
         
         self.wait(delay_zoom_out + (t_zoom/2) )
+
 
         #have images slide to the user then fade away one at a time          
         d_img=t_end_animations/len(self.image_control_ids)  #delay time per image
@@ -942,7 +950,7 @@ class ctl_animator(threading.Thread):
 
         #divide the time allotted for this animation
         time=time-t_arrange_controls
-        concurrent=5
+        concurrent=8
         time_slice = time/len(self.image_control_ids) * concurrent  #time per image  =time/20
         cc_wait= time_slice / concurrent        #wait before animating another image        
         
@@ -1204,7 +1212,7 @@ class ctl_animator(threading.Thread):
                         ('u',wall_slide),
                         ('onceb',corridor),
                         ('onceb',grid_leave),
-                        ('onceb',grid_flip),
+                        ('onceb',grid_tilt),
                         ('onceb',slide_p),
                          ]
 
