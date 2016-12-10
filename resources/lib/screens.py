@@ -124,9 +124,9 @@ class ctl_animator(threading.Thread):
                 self.direction=bool(random.getrandbits(1))
                 #log( 'self.direction:' + repr(self.direction))
 
-                #option, f=random.choice(self.animation_functions)
+                option, f=random.choice(self.animation_functions)
                 #option, f=self.animation_functions[13]   #corridor
-                option, f=self.animation_functions[15]  
+                #option, f=self.animation_functions[15]  
                 #f=self.test; option='onceb'
                 
                 #log('  @animation: ' + repr( f ) ) 
