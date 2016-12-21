@@ -67,6 +67,9 @@ msgctxt "#32115"
 msgid "Use HQ image instead of thumbnail"
 msgstr ""
 
+msgctxt "#32116"
+msgid "Debug: Show query info"
+msgstr ""
 
 
 msgctxt "#32200"

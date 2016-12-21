@@ -2,8 +2,8 @@
 <settings>
     <category label="32100">
     	<setting id="clear_cache_button"  type="action"      label="32101"  default="" action="RunAddon(script.music.duck_go,mode=action&arg1=clear_cache)" />
-		<setting id="use_hq_image"        type="bool"        label="32115"  enable="true"               />
-    	
+		<setting id="use_hq_image"        type="bool"        label="32115"  enable="true"  default="true"             />
+    	<setting id="show_query_term"     type="bool"        label="32116"  enable="true"  default="false"             />
     	<setting id="new_image_wait_sec"  type="number"      label="32106"  default="5"                   />
     	
     	<!-- setting id="cx1"              type="text"        label="32102"  default=""                   />

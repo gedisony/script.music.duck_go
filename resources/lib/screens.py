@@ -1480,7 +1480,11 @@ class bggslide(ScreensaverBase):
                         #self.log( '  show halfway point title' )
                         self.show_title_slide(factlet)
 
-                    elif factlet_type =='musicthumbs':
+                    elif factlet_type =='show_query_term':  
+                        #self.log( '  show_query_term' + repr(factlet ) )
+                        self.show_title_slide(factlet)
+
+                    elif factlet_type =='musicthumbs':  #when new song is queried
                         #self.process_music_slide(factlet)
                         self.load_new_images_to_cycle(factlet)
                         self.show_title_slide(factlet)
@@ -1557,9 +1561,19 @@ class bggslide(ScreensaverBase):
             return
         
         title_group_ctl=self.xbmc_window.getControl( self.CTL_TEXT_GROUP )
+        factlet_type=factlet.get('factlet_type')
+        
+        #if factlet_type in ['show_title', 'musicthumbs']:
         song_title=factlet.get('title')
         song_artist=factlet.get('artist')
         song_album=factlet.get('album')
+        
+        if factlet_type=='show_query_term':
+            searches_list=factlet.get('searches')
+            song_title='\n'.join(searches_list)
+            #song_artist=str( factlet.get('images')) + ' images'
+            #song_album=factlet.get('album')
+
 
         control=self.xbmc_window.getControl(self.CTL_TITLE_TBOX)        
         control.setText( song_title )

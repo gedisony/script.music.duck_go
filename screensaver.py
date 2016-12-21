@@ -78,6 +78,8 @@ ENABLE_MUSIC_SEARCH=addon.getSetting("enable_music_search") == "true"
 FILTER_URL  =addon.getSetting("filter_url")
 FILTER_TITLE=addon.getSetting("filter_title")
 
+SHOW_QUERY_TERM=addon.getSetting("show_query_term") == "true"
+
 try:
     search_no_music_interval=int( addon.getSetting("search_no_music_interval") )
 except:
@@ -257,6 +259,7 @@ class Worker(threading.Thread):
 
     def generate_slide_for_music(self):
         thumbs=[]
+        query_info={}
 
         if xbmc.Player().isPlayingAudio() and ENABLE_MUSIC_SEARCH:
             #log('audio is playing ' )
@@ -287,7 +290,7 @@ class Worker(threading.Thread):
                                     } )
             else:
                 self.last_playing_song=song_title
-                self.search_thumbs_to_queue( song_title, song_artist, song_album  )
+                query_info=self.search_thumbs_to_queue( song_title, song_artist, song_album  )
                 
         else:
             #log('    #audio is not playing ')    
@@ -295,12 +298,18 @@ class Worker(threading.Thread):
             #log('   #time delta ' + repr( between_last_search_mins ) + "cycle interval="  + repr(search_no_music_interval ))
             if between_last_search_mins > search_no_music_interval:
                 log('    #doing no-audio search')
-                self.search_thumbs_to_queue( pages=2 )
+                query_info=self.search_thumbs_to_queue( pages=2 )
                 self.last_no_audio_search=datetime.now()
+    
+        if SHOW_QUERY_TERM:
+            if query_info:
+                query_info.update( {'factlet_type' : "show_query_term",} )
+                self.q_out.put( query_info )
     
     
     def search_thumbs_to_queue(self, song_title='', song_artist='', song_album='', pages=1):
         search_strings=[]  
+        query_info={}
         song_artist_search='art'
         if song_title:
             #various artist changed to just 'song'
@@ -321,6 +330,8 @@ class Worker(threading.Thread):
             search_string, pages = process_extra_parameters_in(search_string)
             
             bpm=0
+        
+        
            
         try:
             #search_strings.append(search_string)
@@ -331,12 +342,22 @@ class Worker(threading.Thread):
             
             thumbs=self.slide_info_generator.do_searches( search_strings, pages )
             log('  #%d images' %len(thumbs) )
+
+            query_info.update( { 'searches': search_strings,  
+                                 'pages': pages,
+                                 'images': len(thumbs),
+                                } ) 
+
             if len(thumbs) < 40:
                 #search again using alternate search string (this does not take into account whether music is playing or not
                 search_string=SEARCH_TEMPLATE2.format(title=song_title, artist=song_artist_search, album=song_album).strip()
                 log('    #+ alternate search string:' + search_string)
                 thumbs.extend( self.slide_info_generator.do_search( search_string ) )
                 
+                query_info.update( { 'more_search': search_string,  
+                     'total_images': len(thumbs),
+                    } ) 
+
             thumbs = remove_dict_duplicates( thumbs, 'src')
             
             thumbs = process_filter( thumbs )
@@ -352,6 +373,8 @@ class Worker(threading.Thread):
             #read timeout
             self.last_playing_song=''
             raise
+        
+        return query_info
                             
 
     def wait(self, sleep_msec):
