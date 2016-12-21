@@ -316,7 +316,7 @@ class Worker(threading.Thread):
             if 'various' in song_artist.lower(): 
                 song_artist_search='song'
             else:
-                song_artist_search=song_artist
+                song_artist_search=song_artist.strip()
                 
             bpm=self.get_bpm(song_title,song_artist )                            
 
